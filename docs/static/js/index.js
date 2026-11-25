@@ -153,7 +153,7 @@ function renderLadder(results, metric) {
   host.appendChild(svg);
 
   var unit = { APE: "Median-APE in %", AE: "Median-AE in €" }[metric];
-  $("#ladder-caption").textContent = unit + ", alle gültigen Stückpreise je Experiment";
+  $("#ladder-caption").textContent = unit + ", alle gültigen Stückpreise je Experiment · niedriger ist besser";
 }
 
 // The sentences under the experiment chart that depend on the data: lot sizes per part and the calculators' sample.
