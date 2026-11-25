@@ -3,12 +3,12 @@
  "note": "Berechnet mit evaluation/project_page_numbers.ipynb: Median-APE und Median-AE über alle gültigen Stückpreise je Experiment; n zählt die Teile. Nummerierung wie im Repo.",
  "key_numbers": [
   {
-   "value": "67 % → 23 %",
-   "label": "typische Abweichung vom Preis der Firma,<br>ohne Kontext → mit Referenzteilen"
+   "value": "67 % → 23 %",
+   "label": "typische Abweichung vom Preis der Firma, ohne Kontext → mit Referenzteilen"
   },
   {
-   "value": "54 %",
-   "label": "der Stückpreise schätzt der Few-Shot-Agent<br>mit höchstens 25 % Abweichung"
+   "value": "54 %",
+   "label": "der Stückpreise schätzt der Few-Shot-Agent mit höchstens 25 % Abweichung"
   },
   {
    "value": "300",
