@@ -216,13 +216,8 @@ body:not(.show-todo) .todo { display: none; }
 .teaser-agent { background: var(--deep); width: 34%; padding: 1.2rem 1rem; }
 .teaser-agent strong { color: #fff; font-size: 1.15rem; }
 .agent-steps { list-style: none; margin: 0.6rem 0 0; padding: 0; }
-.agent-steps li { color: var(--highlight); font-size: 0.88rem; padding: 0.12rem 0; opacity: 0.35; animation: step 7.5s infinite; }
+.agent-steps li { color: var(--highlight); font-size: 0.88rem; padding: 0.12rem 0; }
 .agent-steps li::before { content: "▸ "; }
-.agent-steps li:nth-child(2) { animation-delay: 1.5s; }
-.agent-steps li:nth-child(3) { animation-delay: 3s; }
-.agent-steps li:nth-child(4) { animation-delay: 4.5s; }
-.agent-steps li:nth-child(5) { animation-delay: 6s; }
-@keyframes step { 0%, 100% { opacity: 0.35; } 6%, 20% { opacity: 1; } 30% { opacity: 0.35; } }
 .teaser-output { background: #fff; border: 2px solid var(--petrol); width: 22%; }
 .teaser-output small { display: block; color: var(--muted); font-size: 0.82rem; }
 .teaser-output .price { display: block; font-size: 1.9rem; font-weight: 800; color: var(--deep); margin: 0.3rem 0; white-space: nowrap; }
@@ -233,14 +228,10 @@ body:not(.show-todo) .todo { display: none; }
 }
 .teaser-arrow span {
   position: absolute; top: -4px; left: 0; width: 11px; height: 11px; border-radius: 50%;
-  background: var(--highlight); border: 2px solid var(--petrol); animation: flow 2.4s linear infinite;
+  background: var(--highlight); border: 2px solid var(--petrol);
 }
-@keyframes flow { from { left: 0; } to { left: calc(100% - 14px); } }
 .teaser .subtitle { margin-top: 1.2rem; font-size: 1.15rem; }
 .dnerf { color: var(--petrol); font-weight: 700; }
-@media (prefers-reduced-motion: reduce) {
-  .agent-steps li, .teaser-arrow span { animation: none; opacity: 1; }
-}
 
 /* ---------------------------------------------------------- key numbers */
 .key-numbers { margin-top: 1.5rem; }
@@ -429,23 +420,6 @@ pre.code-mini { flex: 1; padding: 0.8rem 1rem; margin: 0; }
 .teaser-agent { width: 27%; display: flex; flex-direction: column; justify-content: center; }
 .teaser-output { width: 17%; display: flex; flex-direction: column; justify-content: center; align-self: center; }
 
-/* Highlights follow the agent steps (7.5 s cycle, one step every 1.5 s). */
-.tile-step { animation: glow-twice 7.5s infinite; }                      /* render (0 s) + measure (3 s) */
-.tile-drawing { animation: glow 7.5s infinite; animation-delay: 1.5s; }  /* read drawing */
-.ref-mini { animation: glow 7.5s infinite; animation-delay: 4.5s; }      /* study references */
-.teaser-output { animation: glow-out 7.5s infinite; animation-delay: 6s; }
-@keyframes glow { 0%, 100% { border-color: var(--line); box-shadow: none; } 6%, 20% { border-color: var(--petrol); box-shadow: 0 0 0 3px var(--highlight); } 30% { border-color: var(--line); box-shadow: none; } }
-@keyframes glow-twice {
-  0%, 100% { border-color: var(--line); box-shadow: none; }
-  6%, 20% { border-color: var(--petrol); box-shadow: 0 0 0 3px var(--highlight); }
-  30%, 40% { border-color: var(--line); box-shadow: none; }
-  46%, 60% { border-color: var(--petrol); box-shadow: 0 0 0 3px var(--highlight); }
-  70% { border-color: var(--line); box-shadow: none; }
-}
-@keyframes glow-out { 0%, 100% { box-shadow: none; } 6%, 20% { box-shadow: 0 0 0 4px var(--highlight); } 30% { box-shadow: none; } }
-@media (prefers-reduced-motion: reduce) {
-  .tile-step, .tile-drawing, .ref-mini, .teaser-output { animation: none; }
-}
 
 /* ---------------------------------------------------------- method (b): clickable phases */
 .phase-row { padding: 0.4rem 0 0.2rem; }
