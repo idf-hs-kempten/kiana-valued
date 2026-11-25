@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="VALUED: ein autonomer CAD-Agent, der Stückpreise für Fertigungsteile aus STEP-Dateien und technischen Zeichnungen schätzt, kalibriert an Few-Shot-Referenzkalkulationen.">
+  <meta name="keywords" content="VALUED, KIANA, Kostenschätzung, Kalkulation, LLM-Agent, CAD, Few-Shot">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Privacy: the page loads nothing from other servers, so no visitor IP leaves the host.
+       The policy below makes the browser enforce that; see README.md before changing it. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; media-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>KIANA · VALUED: Vision Agent with Few-Shot Learning for Unit-cost Estimation of Designs</title>
+
+  <link rel="stylesheet" href="./static/css/fonts.css">
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="./static/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css?v=23">
+  <link rel="stylesheet" href="./static/css/run-code.css?v=5">
+  <link rel="icon" href="./static/images/favicon.svg">
+
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/config.js?v=7"></script>
+  <script src="./static/js/index.js?v=25"></script>
+</head>
+<body class="has-navbar-fixed-top">
+
+<!-- ============================================================ navigation -->
+<nav class="navbar is-fixed-top site-nav" role="navigation" aria-label="Seitennavigation">
+  <div class="container is-max-desktop">
+    <div class="navbar-brand">
+      <a class="navbar-item nav-brand" href="#top">KIANA <span>· VALUED</span></a>
+      <a role="button" class="navbar-burger" aria-label="Menü" aria-expanded="false" aria-controls="site-menu">
+        <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+      </a>
+    </div>
+    <div class="navbar-menu" id="site-menu">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#problem">Problem</a>
+        <a class="navbar-item" href="#methode">Methode</a>
+        <a class="navbar-item" href="#daten">Daten</a>
+        <a class="navbar-item" href="#ergebnisse">Ergebnisse</a>
+        <a class="navbar-item" href="#lauf">Agent im Einsatz</a>
+        <a class="navbar-item" href="#entdecken">Entdecken</a>
+        <a class="navbar-item" href="#grenzen">Grenzen</a>
+        <a class="navbar-item" href="#begriffe">Begriffe</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================================================ hero -->
+<section class="hero" id="top">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <p class="publication-eyebrow">Forschungsprojekt</p>
+          <h1 class="title is-1 publication-title">KIANA</h1>
+          <h2 class="subtitle is-3 publication-subtitle"><strong>VALUED</strong>: <span class="acro">V</span>ision <span class="acro">A</span>gent with
+            <abbr title="Few-Shot: Das Modell lernt aus wenigen gelösten Beispielen, hier fünf bereits kalkulierten Teilen.">Few-Shot</abbr>
+            <span class="acro">L</span>earning for <span class="acro">U</span>nit&#8209;cost <span class="acro">E</span>stimation of <span class="acro">D</span>esigns</h2>
+          <p class="plain-lead">Ein KI-Agent schätzt den Stückpreis eines Bauteils aus 3D-Modell und Zeichnung und lernt dabei von
+            fünf ähnlichen Teilen, die dieselbe Firma schon kalkuliert hat.</p>
+          <!-- <div class="is-size-5 publication-authors" id="authors"></div>
+          <div class="is-size-6 publication-affiliations" id="affiliations"></div>
+          <div class="publication-venue" id="venue"></div> -->
+
+          <!-- <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="#" data-link="paper" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                  <span>Paper</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="#" data-link="arxiv" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="ai ai-arxiv"></i></span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="#" data-link="code" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fab fa-github"></i></span>
+                  <span>Code</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="#" data-link="data" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="far fa-images"></i></span>
+                  <span>Daten</span>
+                </a>
+              </span>
+            </div>
+          </div> -->
+
+          <div class="tldr" aria-label="Die Methode in einer Zeile">
+            <span class="chip chip-dark">VALUED</span><span class="op">=</span>
+            <span class="chip"><abbr title="Sandbox: eine abgeschottete virtuelle Maschine, in der der Agent Code ausführt.">Sandbox</abbr>-Werkzeuge</span><span class="op">+</span>
+            <span class="chip">Geometrische Suche</span><span class="op">+</span>
+            <span class="chip">Kalkulationen als Code</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ teaser -->
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <div class="teaser-figure">
+        <div class="teaser-flow">
+          <div class="teaser-inputs">
+            <div class="input-group">
+              <p class="group-label">Zu kalkulierendes Bauteil</p>
+              <div class="input-pair">
+                <div class="input-tile tile-step">
+                  <img src="./static/images/teaser/part.png" alt="3D-Modell des zu kalkulierenden Bauteils">
+                  <strong>3D-Modell</strong>
+                  <small>STEP-Datei</small>
+                </div>
+                <div class="input-tile tile-drawing">
+                  <img src="./static/images/teaser/drawing.png" alt="Technische Zeichnung des zu kalkulierenden Bauteils">
+                  <strong>Technische Zeichnung</strong>
+                  <small>Toleranzen, Oberflächen</small>
+                </div>
+              </div>
+            </div>
+            <div class="input-group group-refs">
+              <p class="group-label">5 kalkulierte Referenzteile · gleiche Firma</p>
+              <div class="ref-strip">
+                <div class="ref-mini">
+                  <img src="./static/images/teaser/reference_1.png" alt="Referenzteil 1">
+                  <span class="calc-lines"><i></i><i></i><i></i></span>
+                  <b>176,54 €</b>
+                </div>
+                <div class="ref-mini">
+                  <img src="./static/images/teaser/reference_2.png" alt="Referenzteil 2">
+                  <span class="calc-lines"><i></i><i></i><i></i></span>
+                  <b>173,81 €</b>
+                </div>
+                <div class="ref-mini">
+                  <img src="./static/images/teaser/reference_3.png" alt="Referenzteil 3">
+                  <span class="calc-lines"><i></i><i></i><i></i></span>
+                  <b>151,33 €</b>
+                </div>
+                <div class="ref-mini">
+                  <img src="./static/images/teaser/reference_4.png" alt="Referenzteil 4">
+                  <span class="calc-lines"><i></i><i></i><i></i></span>
+                  <b>150,53 €</b>
+                </div>
+                <div class="ref-mini">
+                  <img src="./static/images/teaser/reference_5.png" alt="Referenzteil 5">
+                  <span class="calc-lines"><i></i><i></i><i></i></span>
+                  <b>280,34 €</b>
+                </div>
+              </div>
+              <p class="group-note">jeweils mit ihrer echten Kalkulation</p>
+            </div>
+          </div>
+          <div class="teaser-arrows" aria-hidden="true">
+            <div class="teaser-arrow"><span></span></div>
+            <div class="teaser-arrow"><span></span></div>
+          </div>
+          <div class="teaser-card teaser-agent">
+            <img class="agent-icon" src="./static/images/teaser/agent.png" alt="" aria-hidden="true">
+            <strong>Sandbox-Agent</strong>
+            <ol class="agent-steps">
+              <li>rendern &amp; ansehen</li>
+              <li>Zeichnung lesen</li>
+              <li>B-Rep vermessen</li>
+              <li>5 Referenzen auswerten</li>
+              <li>Kosten berechnen</li>
+            </ol>
+            <div class="agent-models" aria-label="Verwendete Modelle">
+              <span>Qwen3.6 27B</span><span>Qwen3.8 27B</span>
+            </div>
+          </div>
+          <div class="teaser-arrow teaser-arrow-out" aria-hidden="true"><span></span></div>
+          <div class="teaser-card teaser-output">
+            <small>Stückpreis</small>
+            <span class="price">152,70 €</span>
+            <small>bei 1 Stück</small>
+          </div>
+        </div>
+      </div>
+      <h2 class="subtitle has-text-centered">
+        <span class="dnerf">VALUED</span> macht aus einem CAD-Bauteil und seiner Zeichnung einen Stückpreis, kalibriert an fünf Teilen, die dieselbe Firma bereits kalkuliert hat, vollständig in einer Sandbox.
+      </h2>
+
+      <div class="columns key-numbers" id="key-numbers"></div>
+      <p class="key-footnote">* Größte Anzahl in einem Experiment. Durch Filterung wertet jedes Experiment unterschiedlich viele Teile aus.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ abstract -->
+<section class="section" id="kurzfassung">
+  <div class="container is-max-desktop">
+    <p class="kicker">Kurzfassung</p>
+    <div class="content abstract">
+      <p>Ein KI-Agent schätzt Stückpreise realer Bauteile: Er liest 3D-Modell und Zeichnung, vermisst das Teil per Code und
+        überträgt die Kalkulation von fünf ähnlichen Teilen, die dieselbe Firma bereits kalkuliert hat. Auf Teilen aus drei
+        Fertigungsbetrieben liegt er im Median 23&nbsp;% neben dem Preis der Firma; ein Sprachmodell, das nur das 3D-Modell als
+        Text bekommt, liegt bei 67&nbsp;%. Den großen Schritt bringen die ähnlichen Teile, nicht mehr Information über das Teil
+        selbst.</p>
+      <details class="more">
+        <summary>Wie wir vorgegangen sind</summary>
+        <p>Wir geben einem Sprachmodell Stufe für Stufe mehr Information: zuerst nur die STEP-Datei als Text oder die
+          Zeichnung als Bild, dann Auftragsdaten, dann einen automatisch optimierten Prompt, schließlich einen Agenten, der
+          in einer abgeschotteten Sandbox selbst Code ausführt, das Bauteil rendert und vermisst. In der letzten Stufe
+          bekommt der Agent die fünf geometrisch ähnlichsten Teile derselben Firma, jeweils mit ihrer Kalkulation als
+          lauffähigem Python-Code.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ problem -->
+<section class="section" id="problem">
+  <div class="container is-max-desktop">
+    <p class="kicker">Problem</p>
+    <h2 class="title is-3">Der Preis steckt in der Zeichnung, nicht in der Geometrie</h2>
+    <div class="columns">
+      <div class="column"><div class="card-lite">
+        <span class="icon-bubble"><i class="fas fa-cube"></i></span>
+        <h3>Geometrie</h3><p class="muted">Volumen, Flächen, Aufspannungen</p>
+        <p>Die STEP-Datei legt die Form fest und damit das Materialvolumen und die Zahl der Aufspannungen.</p>
+      </div></div>
+      <div class="column"><div class="card-lite">
+        <span class="icon-bubble"><i class="fas fa-ruler-combined"></i></span>
+        <h3>Zeichnung</h3><p class="muted">Toleranzen, Oberflächengüte</p>
+        <p>Toleranzen und Oberflächengüte sind Kostentreiber ersten Ranges, und sie stehen nur in der Zeichnung.</p>
+      </div></div>
+      <div class="column"><div class="card-lite">
+        <span class="icon-bubble"><i class="fas fa-industry"></i></span>
+        <h3>Firma</h3><p class="muted">Stundensätze, Kalkulationsweise</p>
+        <p>Jede Firma bucht andere Prozesse und Minuten, deshalb hat dasselbe Teil unterschiedliche Preise.</p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ method -->
+<section class="section" id="methode">
+  <div class="container is-max-desktop">
+    <p class="kicker">Methode</p>
+    <h2 class="title is-3">Vom rohen STEP-Text zum Few-Shot-Agenten</h2>
+    <div class="columns is-multiline">
+      <div class="column is-half"><div class="panel-lite">
+        <div class="panel-head">
+          <h3><span class="tag-letter">(a)</span> Experimentstufen</h3>
+          <p class="ladder-legend" aria-hidden="true"><i class="dot is-new"></i> erstmals <i class="dot is-used"></i> genutzt</p>
+        </div>
+        <div class="ladder-matrix">
+          <div class="ladder-labels" aria-hidden="true">
+            <span></span><span>STEP als Text</span><span>Zeichnung</span><span>Metadaten</span>
+            <span><abbr title="GEPA: automatische Prompt-Optimierung, bei der ein Sprachmodell den Prompt anhand der eigenen Fehler umschreibt.">GEPA</abbr>-Prompt</span><span>STEP per Code</span><span>Few-Shot-Teile</span><span>Qwen3.8 27B</span>
+          </div>
+          <div class="ladder-cols" id="ladder-row" role="tablist" aria-label="Experimente" aria-describedby="ladder-hint"></div>
+        </div>
+        <div class="phase-detail" id="ladder-detail" role="tabpanel">
+          <div class="detail-head">
+            <p class="tab-hint" id="ladder-hint"><i class="far fa-hand-pointer" aria-hidden="true"></i>
+              Spalte anklicken<span class="tab-keys"> · ← →</span></p>
+            <p class="phase-title" id="ladder-title">Experiment 1 · STEP-Text</p>
+          </div>
+          <p class="phase-text" id="ladder-text">Die rohe STEP-Datei als Text in einem einzigen Prompt, ohne weiteren Kontext.</p>
+        </div>
+      </div></div>
+      <div class="column is-half"><div class="panel-lite">
+        <h3><span class="tag-letter">(b)</span> Ähnliche Teile + Kalkulationen als Code</h3>
+        <div class="retrieval-row">
+          <div class="retrieval-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><b>cos ≥ 0,8?</b></div>
+          <pre class="code-mini">def costs(quantity):
+  material = ...
+  process += 4*65/quantity
+  return material, process, other</pre>
+        </div>
+        <p>Die fünf geometrisch ähnlichsten Teile derselben Firma, jedes mit seiner echten Kalkulation als lauffähiges Python.
+          Ähnlichkeiten unter 0,8 werden als grobe Orientierung markiert.</p>
+        <p class="memory-row"><span>Je Referenzteil</span>
+          <code>Kalkulation</code><code>Auftragsdaten</code><code>3D-Modell</code><code>Zeichnung</code>
+        </p>
+      </div></div>
+      <div class="column is-full more-row">
+        <button class="more-toggle" type="button" aria-expanded="false" aria-controls="method-c method-d">Weitere Details:
+          Ablauf des Agenten und Werkzeugpaket</button>
+      </div>
+      <div class="column is-half" id="method-c" hidden><div class="panel-lite">
+        <h3><span class="tag-letter">(c)</span> Sandbox-Agent, Phasen 0 bis 9</h3>
+        <div class="phase-row" id="phase-row" role="tablist" aria-label="Phasen des Agenten" aria-describedby="phase-hint"></div>
+        <div class="phase-detail" id="phase-detail" role="tabpanel">
+          <div class="detail-head">
+            <p class="tab-hint" id="phase-hint"><i class="far fa-hand-pointer" aria-hidden="true"></i>
+              Phase anklicken<span class="tab-keys"> · ← →</span></p>
+            <p class="phase-title" id="phase-title"></p>
+          </div>
+          <p class="phase-text" id="phase-text"></p>
+        </div>
+        <p class="memory-row"><span>Gedächtnis in Dateien</span>
+          <code>Plan</code><code>Vorgaben</code><code>Erkenntnisse</code><code>Notizen je Referenzteil</code><code>Kennzahlen</code>
+        </p>
+      </div></div>
+      <div class="column is-half" id="method-d" hidden><div class="panel-lite">
+        <h3><span class="tag-letter">(d)</span> Framework aus Agenten-Code</h3>
+        <div class="distill-flow" aria-hidden="true">
+          <div class="distill-runs">
+            <span class="run-card"><b>Lauf 1</b><i></i><i></i></span>
+            <span class="run-card"><b>Lauf 2</b><i></i><i></i></span>
+            <span class="run-card"><b>Lauf n</b><i></i><i></i></span>
+          </div>
+          <span class="distill-step"><span class="step-label">zusammen&shy;geführt</span> <i class="fas fa-arrow-right"></i></span>
+          <span class="distill-pkg"><code>step_2_aag</code><small>Python-Paket</small></span>
+          <span class="distill-step"><span class="step-label">import</span> <i class="fas fa-arrow-right"></i></span>
+          <span class="distill-agent"><img src="./static/images/teaser/agent.png" alt=""><small>Agent</small></span>
+        </div>
+        <p class="cap-label">Fertige Funktionen für den Agenten</p>
+        <div class="cap-chips">
+          <span>Volumen &amp; Masse</span><span>Hüllkörper</span><span>Flächen- &amp; Kantentypen</span>
+          <span>Koaxiale Bohrungen</span><span>Wandstärke</span><span>Symmetrie</span><span>Topologie</span>
+          <span>Flächengraph (AAG)</span>
+        </div>
+        <p class="cap-extra">dazu Werkzeuge, die 3D-Modell und Zeichnung als Bild ausgeben</p>
+        <p>Von den Qwen-Agenten selbst geschrieben, von uns nur zu einem Paket zusammengeführt: Der Agent ruft fertige
+          Funktionen auf, statt in jedem Lauf neu anzufangen.</p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ data and metrics -->
+<section class="section" id="daten">
+  <div class="container is-max-desktop">
+    <p class="kicker">Daten und Messung</p>
+    <h2 class="title is-3">Reale Teile, echte Kalkulationen, ein Fehlermaß je Teil</h2>
+    <div class="columns">
+      <div class="column"><div class="card-lite">
+        <span class="icon-bubble"><i class="fas fa-database"></i></span>
+        <h3>Daten</h3><p class="muted">318 Einzelteile, drei Fertigungsbetriebe</p>
+        <p>Jedes Teil hat ein 3D-Modell (STEP) und den Stückpreis, den die Firma für eine bis fünf Bestellmengen kalkuliert
+          hat; dieser Preis ist der Ist-Wert. Aufgenommen wurden nur Einzelteile mit genau einem Volumenkörper, eindeutiger
+          Geometrie, gültigem Preis und mindestens einem Prozessschritt. 300 Teile haben genau eine technische Zeichnung;
+          auf ihnen rechnen alle Experimente mit Zeichnung oder Agent. Die Firmen bleiben anonym (Firma A, B, C).</p>
+      </div></div>
+      <div class="column"><div class="card-lite">
+        <span class="icon-bubble"><i class="fas fa-percent"></i></span>
+        <h3>Kennzahlen</h3><p class="muted">Median-APE und Median-AE über alle Stückpreise</p>
+        <p>Je Bestellmenge vergleichen wir geschätzten und kalkulierten Stückpreis. Der <strong>APE</strong> ist die
+          Abweichung in Prozent des Ist-Preises, der <strong>AE</strong> die Abweichung in Euro. Gezeigt wird jeweils der
+          <strong>Median</strong> über alle Stückpreise eines Experiments (Median-APE, Median-AE): Einzelne Preise mit
+          mehreren hundert Prozent Fehler würden den Mittelwert sonst stark verschieben. n zählt die Teile.</p>
+      </div></div>
+    </div>
+    <details class="more">
+      <summary>Warum die Zahl der Teile je Experiment schwankt</summary>
+      <p>Gewertet wird jedes Teil, für das ein Experiment einen gültigen Preis liefert. In 1 und 2 sind 87 STEP-Dateien als
+          Text länger als das Kontextfenster des Modells (262.144 Tokens). 3 und 3.1 werden nur auf dem zurückgehaltenen
+          Testteil bewertet, weil GEPA den Prompt auf den übrigen Teilen optimiert. Bei den Agenten fehlen Teile, für die
+          kein gültiger Preis abgegeben wurde. Modelle: Qwen3.6 27B, in 5.1 Qwen3.8 27B.</p>
+    </details>
+  </div>
+</section>
+
+<!-- ============================================================ results: ladder -->
+<section class="section" id="ergebnisse">
+  <div class="container is-max-desktop">
+    <p class="kicker">Ergebnisse</p>
+    <div class="heading-row">
+      <h2 class="title is-3">Erst die Referenzteile halbieren den Fehler</h2>
+      <div class="buttons has-addons metric-toggle" id="metric-toggle" role="tablist" aria-label="Kennzahl">
+        <button class="button is-rounded is-selected" role="tab" data-metric="APE" aria-selected="true">Median-APE</button>
+        <button class="button is-rounded" role="tab" data-metric="AE" aria-selected="false">Median-AE</button>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-head">
+        <span class="muted" id="ladder-caption"></span>
+        <span class="legend-human"><i></i>Kalkulatoren: Vor- gegen Nachkalkulation, andere Teile</span>
+      </div>
+      <div id="ladder-chart" class="chart"></div>
+    </div>
+    <p class="chart-note">Ein Stückpreis ist der Preis eines Teils für eine angefragte Losgröße. Jeder Balken ist der
+      Median des Fehlers über alle gültig bewerteten Stückpreise eines Experiments; n darunter zählt die Teile.<span
+      id="lots-note"></span> Den größten Sprung bringen die Referenzteile (Experiment 4 → 5): Der Agent sieht nun, wie die
+      Firma kalkuliert. <strong>Die gestrichelte Linie misst etwas anderes:</strong> Bei <span id="human-count">31 anderen
+      Teilen</span> wurde die Vorkalkulation erfahrener Kalkulatoren mit den tatsächlichen Kosten nach der Fertigung
+      (Nachkalkulation) verglichen, ebenfalls je Stückpreis. Sie zeigt die Größenordnung menschlicher Schätzfehler, ist
+      aber kein direkter Vergleich. Beim Median-AE fehlt sie, weil der Fehler in Euro vom Preisniveau der Teile abhängt.</p>
+  </div>
+</section>
+
+<!-- ============================================================ results: distribution -->
+<section class="section" id="verteilung">
+  <div class="container is-max-desktop">
+    <p class="kicker">Ergebnisse</p>
+    <h2 class="title is-3">Der Few-Shot-Agent liegt selten weit daneben</h2>
+    <div class="columns">
+      <div class="column is-7"><div class="chart-card is-centered-chart">
+        <div id="cdf-chart" class="chart"></div>
+      </div></div>
+      <div class="column is-5" id="company-cards"></div>
+    </div>
+    <p class="chart-note">Links: Jede Linie zeigt, welcher Anteil der Stückpreise höchstens den prozentualen Fehler auf der
+      x-Achse hat; je höher die Linie, desto besser. Beim Few-Shot-Agenten liegen 54&nbsp;% der Stückpreise innerhalb von 25&nbsp;%
+      Fehler, beim Sprachmodell mit STEP-Text 18&nbsp;%. Rechts: Median-APE je Firma; der Few-Shot-Agent ist in allen drei
+      Firmen der genaueste Ansatz.</p>
+  </div>
+</section>
+
+<!-- ============================================================ agent run (data/run.json, scripts/export_run.py) -->
+<section class="section" id="lauf">
+  <div class="container is-max-desktop">
+    <p class="kicker">Agent im Einsatz</p>
+    <h2 class="title is-3">Wie der Agent ein Teil kalkuliert, Schritt für Schritt</h2>
+    <p class="run-intro">Ein echter, vollständiger Lauf aus MLflow, im Aufbau von Experiment 5.1: Der Agent kalkuliert
+      <strong>bracket-373</strong> aus dem öffentlichen Datensatz (siehe „Entdecken“), mit fünf ähnlichen Teilen und deren
+      Beispielkalkulation als Referenz. Jeder Werkzeugaufruf ist enthalten, auch Fehler und ihre Korrektur. Die
+      Überlegungen des Agenten stehen im englischen Original.</p>
+    <div class="run-stats" id="run-stats"></div>
+    <p class="run-label-row">Phasen in der Reihenfolge des Laufs, Breite nach Dauer. Vorgesehen ist 0 bis 9.</p>
+    <div class="run-phasebar" id="run-phasebar"></div>
+    <div class="buttons has-addons run-tabs" id="run-tabs" role="tablist" aria-label="Ansicht des Laufs">
+      <button class="button is-rounded is-selected" role="tab" aria-selected="true" aria-controls="run-steps" id="run-tab-steps">Ablauf</button>
+      <button class="button is-rounded" role="tab" aria-selected="false" aria-controls="run-files" id="run-tab-files" tabindex="-1">Dateien</button>
+      <button class="button is-rounded" role="tab" aria-selected="false" aria-controls="run-images" id="run-tab-images" tabindex="-1">Bilder</button>
+    </div>
+    <div class="run-panel" id="run-steps" role="tabpanel" aria-labelledby="run-tab-steps"></div>
+    <div class="run-panel" id="run-files" role="tabpanel" aria-labelledby="run-tab-files" hidden></div>
+    <div class="run-panel" id="run-images" role="tabpanel" aria-labelledby="run-tab-images" hidden></div>
+  </div>
+</section>
+
+<!-- ============================================================ part explorer -->
+<section class="section" id="entdecken">
+  <div class="container is-max-desktop">
+    <p class="kicker">Entdecken</p>
+    <h2 class="title is-3">Die Geometriesuche findet Teile derselben Bauform</h2>
+    <p class="muted"><strong>Demo auf öffentlichen Daten.</strong> Ein Teil wählen: Daneben erscheinen seine nächsten Nachbarn, sortiert nach der Cosinus-Ähnlichkeit
+      der Geometrie-Einbettungen. Gestrichelt: Ähnlichkeit unter 0,80.</p>
+    <div id="parts-carousel" class="carousel results-carousel"></div>
+    <div class="part-detail" id="part-detail">
+      <div class="columns">
+        <div class="column is-4">
+          <div class="media-slot" id="part-render">Rendering</div>
+          <p class="detail-title has-text-centered" id="part-name"></p>
+        </div>
+        <div class="column">
+          <h3 class="detail-title">Ähnlichste Teile</h3>
+          <div class="ref-row" id="part-refs"></div>
+        </div>
+      </div>
+    </div>
+    <p class="source-note">Quelle der Teile: Datensatz aus Q. Zou und L. Zhu, „Bringing attention to CAD: Boundary
+      representation learning via transformer“, <i>Computer-Aided Design</i>, 103940, 2025. Die Renderings haben wir
+      aus den STEP-Dateien dieses Datensatzes erzeugt; Geometrie-Einbettung und Ähnlichkeitssuche sind unsere eigene Arbeit.</p>
+  </div>
+</section>
+
+<!-- ============================================================ limitations -->
+<section class="section" id="grenzen">
+  <div class="container is-max-desktop">
+    <p class="kicker">Grenzen</p>
+    <h2 class="title is-3">Was der Agent noch nicht sieht</h2>
+    <div class="content">
+      <ul>
+        <li>Die Referenzteile werden nur nach geometrischer Ähnlichkeit ausgewählt. Fertigungsrelevante Angaben aus der
+          Zeichnung, etwa Toleranzen, Oberflächengüte, Beschichtungen oder Wärmebehandlungen, fließen in die Auswahl nicht ein.
+          Der Agent liest diese Angaben erst danach aus den Zeichnungen, beim eigenen Teil wie bei den Referenzteilen.</li>
+        <li>Fast alle Teile sind nur für eine einzige Bestellmenge kalkuliert, im Median für höchstens zwei Stück. Ob der
+          Agent Rüstkosten bei größeren Serien richtig auf die Stückzahl verteilt, ist damit kaum geprüft.</li>
+        <li>Die Läufe sind nicht deterministisch: Wird dasselbe Teil zweimal kalkuliert, kann der Agent zu unterschiedlichen
+          Preisen kommen. Das ist in der Praxis nicht anders, denn auch zwei Kalkulatoren derselben Firma bewerten ein Teil
+          selten gleich. Wie groß die Streuung beim Agenten ist, haben wir noch nicht gemessen, weil jedes Teil je Experiment
+          nur einmal kalkuliert wurde.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ glossary -->
+<section class="section" id="begriffe">
+  <div class="container is-max-desktop">
+    <p class="kicker">Begriffe</p>
+    <h2 class="title is-3">Kurz erklärt</h2>
+    <details class="more">
+      <summary>Begriffe anzeigen</summary>
+    <dl class="glossary">
+      <dt>STEP</dt><dd>Austauschformat für 3D-Modelle (ISO 10303). Die Datei ist Text und beschreibt die exakte Geometrie.</dd>
+      <dt>B-Rep</dt><dd>Boundary Representation: das Bauteil als Menge seiner Flächen, Kanten und Punkte, so wie es in der STEP-Datei steht.</dd>
+      <dt>AAG</dt><dd>Attributed Adjacency Graph: ein Graph, in dem jede Fläche ein Knoten ist und benachbarte Flächen verbunden sind. Daraus lassen sich Bohrungen, Taschen und Absätze ablesen.</dd>
+      <dt>Technische Zeichnung</dt><dd>Die 2D-Zeichnung zum Teil mit Maßen, Toleranzen, Oberflächengüte und Werkstoff. Diese Angaben stehen nicht im 3D-Modell.</dd>
+      <dt>Zero-Shot / Few-Shot</dt><dd>Zero-Shot: Das Modell schätzt ohne Beispiele. Few-Shot: Es bekommt gelöste Beispiele, hier fünf bereits kalkulierte Teile derselben Firma.</dd>
+      <dt>GEPA</dt><dd>Verfahren zur automatischen Prompt-Optimierung: Ein Sprachmodell analysiert die Fehler des aktuellen Prompts und schreibt ihn schrittweise um.</dd>
+      <dt>Agent, Sandbox</dt><dd>Ein Agent ist ein Sprachmodell, das selbst Werkzeuge aufruft, hier Python und Shell. Die Sandbox ist eine abgeschottete virtuelle Maschine, in der er das ohne Zugriff auf andere Systeme tun kann.</dd>
+      <dt>Geometrie-Einbettung, Cosinus-Ähnlichkeit</dt><dd>Jedes 3D-Modell wird in einen Zahlenvektor übersetzt. Die Cosinus-Ähnlichkeit zweier Vektoren (bis 1) misst, wie ähnlich sich die Formen sind; gesucht wird nur innerhalb derselben Firma.</dd>
+      <dt>Mengenstaffel</dt><dd>Stückpreise für verschiedene Bestellmengen. Rüstkosten verteilen sich auf mehr Teile, deshalb sinkt der Stückpreis mit der Menge.</dd>
+      <dt>Vor- und Nachkalkulation</dt><dd>Vorkalkulation: Kostenschätzung vor der Fertigung, Grundlage des Angebots. Nachkalkulation: tatsächliche Kosten nach der Fertigung.</dd>
+      <dt>Kontextfenster</dt><dd>Die größte Textmenge, die ein Sprachmodell auf einmal verarbeiten kann, gemessen in Tokens (Wortteilen).</dd>
+      <dt>Qwen</dt><dd>Offene Sprachmodelle; wir nutzen Varianten mit 27 Milliarden Parametern, die auf eigenen Servern laufen.</dd>
+    </dl>
+    </details>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <div class="funding">
+            <!-- Official funding logos, unmodified, as delivered by the funding body. They stay hidden until the
+                 files exist in static/images/funding/ (see README.md, "Funding logos"). -->
+            <div class="funding-logos">
+              <img data-optional src="./static/images/funding/bmwe_logo.png"
+                   alt="Gefördert durch: Bundesministerium für Wirtschaft und Energie aufgrund eines Beschlusses des Deutschen Bundestages">
+              <img data-optional src="./static/images/funding/zim_logo.png" alt="ZIM: Zentrales Innovationsprogramm Mittelstand">
+            </div>
+            <p>Das Forschungsprojekt wird vom Bundesministerium für Wirtschaft und Energie (BMWE) aufgrund eines Beschlusses
+              des Deutschen Bundestages im Rahmen des Zentralen Innovationsprogramms Mittelstand (ZIM) gefördert.</p>
+          </div>
+          <p><strong>Danksagung.</strong> Wir danken unserem Datenpartner und den beteiligten Fertigungsbetrieben
+            für die Kalkulationsdaten.</p>
+          <p>
+            Diese Website steht unter der Lizenz
+            <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/deed.de">Creative Commons CC BY-SA 4.0</a>.
+            Sie basiert auf der Projektseiten-Vorlage von <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

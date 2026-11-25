@@ -1,0 +1,17 @@
+/* Self-hosted fonts. Nothing is loaded from Google Fonts or any other server.
+   Google Sans and Noto Sans: SIL Open Font License 1.1, see static/fonts/OFL-*.txt.
+   Variable fonts, subset to Latin plus the symbols the page uses (€ ≥ → Ø ³ × ▸). */
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../fonts/GoogleSans-Latin-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('../fonts/NotoSans-Latin-var.woff2') format('woff2');
+}
