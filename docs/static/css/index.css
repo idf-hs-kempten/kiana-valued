@@ -1,543 +1,938 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="utf-8">
-  <meta name="description"
-        content="VALUED: ein autonomer CAD-Agent, der Stückpreise für Fertigungsteile aus STEP-Dateien und technischen Zeichnungen schätzt, kalibriert an Few-Shot-Referenzkalkulationen.">
-  <meta name="keywords" content="VALUED, KIANA, Kostenschätzung, Kalkulation, LLM-Agent, CAD, Few-Shot">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Privacy: the page loads nothing from other servers, so no visitor IP leaves the host.
-       The policy below makes the browser enforce that; see README.md before changing it. -->
-  <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; media-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'">
-  <meta name="referrer" content="no-referrer">
-  <title>KIANA · VALUED: Vision Agent with Few-Shot Learning for Unit-cost Estimation of Designs</title>
+body {
+  font-family: 'Noto Sans', sans-serif;
+}
 
-  <link rel="stylesheet" href="./static/css/fonts.css">
-  <link rel="stylesheet" href="./static/css/bulma.min.css">
-  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
-  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
-  <link rel="stylesheet" href="./static/css/academicons.min.css">
-  <link rel="stylesheet" href="./static/css/index.css?v=24">
-  <link rel="stylesheet" href="./static/css/run-code.css?v=5">
-  <link rel="icon" href="./static/images/favicon.svg">
 
-  <script defer src="./static/js/fontawesome.all.min.js"></script>
-  <script src="./static/js/bulma-carousel.min.js"></script>
-  <script src="./static/js/config.js?v=7"></script>
-  <script src="./static/js/index.js?v=26"></script>
-</head>
-<body class="has-navbar-fixed-top">
+.footer .icon-link {
+    font-size: 25px;
+    color: #000;
+}
 
-<!-- ============================================================ navigation -->
-<nav class="navbar is-fixed-top site-nav" role="navigation" aria-label="Seitennavigation">
-  <div class="container is-max-desktop">
-    <div class="navbar-brand">
-      <a class="navbar-item nav-brand" href="#top">KIANA <span>· VALUED</span></a>
-      <a role="button" class="navbar-burger" aria-label="Menü" aria-expanded="false" aria-controls="site-menu">
-        <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
-      </a>
-    </div>
-    <div class="navbar-menu" id="site-menu">
-      <div class="navbar-end">
-        <a class="navbar-item" href="#problem">Problem</a>
-        <a class="navbar-item" href="#methode">Methode</a>
-        <a class="navbar-item" href="#daten">Daten</a>
-        <a class="navbar-item" href="#ergebnisse">Ergebnisse</a>
-        <a class="navbar-item" href="#lauf">Agent im Einsatz</a>
-        <a class="navbar-item" href="#entdecken">Entdecken</a>
-        <a class="navbar-item" href="#grenzen">Grenzen</a>
-        <a class="navbar-item" href="#begriffe">Begriffe</a>
-      </div>
-    </div>
-  </div>
-</nav>
+.link-block a {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
 
-<!-- ============================================================ hero -->
-<section class="hero" id="top">
-  <div class="hero-body">
-    <div class="container is-max-desktop">
-      <div class="columns is-centered">
-        <div class="column has-text-centered">
-          <p class="publication-eyebrow">Forschungsprojekt</p>
-          <h1 class="title is-1 publication-title">KIANA</h1>
-          <h2 class="subtitle is-3 publication-subtitle"><strong>VALUED</strong>: <span class="acro">V</span>ision <span class="acro">A</span>gent with
-            <abbr title="Few-Shot: Das Modell lernt aus wenigen gelösten Beispielen, hier fünf bereits kalkulierten Teilen.">Few-Shot</abbr>
-            <span class="acro">L</span>earning for <span class="acro">U</span>nit&#8209;cost <span class="acro">E</span>stimation of <span class="acro">D</span>esigns</h2>
-          <p class="plain-lead">Ein KI-Agent schätzt den Stückpreis eines Bauteils aus 3D-Modell und Zeichnung und lernt dabei von
-            fünf ähnlichen Teilen, die dieselbe Firma schon kalkuliert hat.</p>
-          <!-- <div class="is-size-5 publication-authors" id="authors"></div>
-          <div class="is-size-6 publication-affiliations" id="affiliations"></div>
-          <div class="publication-venue" id="venue"></div> -->
 
-          <!-- <div class="column has-text-centered">
-            <div class="publication-links">
-              <span class="link-block">
-                <a href="#" data-link="paper" class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon"><i class="fas fa-file-pdf"></i></span>
-                  <span>Paper</span>
-                </a>
-              </span>
-              <span class="link-block">
-                <a href="#" data-link="arxiv" class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon"><i class="ai ai-arxiv"></i></span>
-                  <span>arXiv</span>
-                </a>
-              </span>
-              <span class="link-block">
-                <a href="#" data-link="code" class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon"><i class="fab fa-github"></i></span>
-                  <span>Code</span>
-                </a>
-              </span>
-              <span class="link-block">
-                <a href="#" data-link="data" class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon"><i class="far fa-images"></i></span>
-                  <span>Daten</span>
-                </a>
-              </span>
-            </div>
-          </div> -->
 
-          <div class="tldr" aria-label="Die Methode in einer Zeile">
-            <span class="chip chip-dark">VALUED</span><span class="op">=</span>
-            <span class="chip"><abbr title="Sandbox: eine abgeschottete virtuelle Maschine, in der der Agent Code ausführt.">Sandbox</abbr>-Werkzeuge</span><span class="op">+</span>
-            <span class="chip">Geometrische Suche</span><span class="op">+</span>
-            <span class="chip">Kalkulationen als Code</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+.teaser .hero-body {
+  padding-top: 0;
+  padding-bottom: 3rem;
+}
 
-<!-- ============================================================ teaser -->
-<section class="hero teaser">
-  <div class="container is-max-desktop">
-    <div class="hero-body">
-      <div class="teaser-figure">
-        <div class="teaser-flow">
-          <div class="teaser-inputs">
-            <div class="input-group">
-              <p class="group-label">Zu kalkulierendes Bauteil</p>
-              <div class="input-pair">
-                <div class="input-tile tile-step">
-                  <img src="./static/images/teaser/part.png" alt="3D-Modell des zu kalkulierenden Bauteils">
-                  <strong>3D-Modell</strong>
-                  <small>STEP-Datei</small>
-                </div>
-                <div class="input-tile tile-drawing">
-                  <img src="./static/images/teaser/drawing.png" alt="Technische Zeichnung des zu kalkulierenden Bauteils">
-                  <strong>Technische Zeichnung</strong>
-                  <small>Toleranzen, Oberflächen</small>
-                </div>
-              </div>
-            </div>
-            <div class="input-group group-refs">
-              <p class="group-label">5 kalkulierte Referenzteile · gleiche Firma</p>
-              <div class="ref-strip">
-                <div class="ref-mini">
-                  <img src="./static/images/teaser/reference_1.png" alt="Referenzteil 1">
-                  <span class="calc-lines"><i></i><i></i><i></i></span>
-                  <b>176,54 €</b>
-                </div>
-                <div class="ref-mini">
-                  <img src="./static/images/teaser/reference_2.png" alt="Referenzteil 2">
-                  <span class="calc-lines"><i></i><i></i><i></i></span>
-                  <b>173,81 €</b>
-                </div>
-                <div class="ref-mini">
-                  <img src="./static/images/teaser/reference_3.png" alt="Referenzteil 3">
-                  <span class="calc-lines"><i></i><i></i><i></i></span>
-                  <b>151,33 €</b>
-                </div>
-                <div class="ref-mini">
-                  <img src="./static/images/teaser/reference_4.png" alt="Referenzteil 4">
-                  <span class="calc-lines"><i></i><i></i><i></i></span>
-                  <b>150,53 €</b>
-                </div>
-                <div class="ref-mini">
-                  <img src="./static/images/teaser/reference_5.png" alt="Referenzteil 5">
-                  <span class="calc-lines"><i></i><i></i><i></i></span>
-                  <b>280,34 €</b>
-                </div>
-              </div>
-              <p class="group-note">jeweils mit ihrer echten Kalkulation</p>
-            </div>
-          </div>
-          <div class="teaser-arrows" aria-hidden="true">
-            <div class="teaser-arrow"><span></span></div>
-            <div class="teaser-arrow"><span></span></div>
-          </div>
-          <div class="teaser-card teaser-agent">
-            <img class="agent-icon" src="./static/images/teaser/agent.png" alt="" aria-hidden="true">
-            <strong>Sandbox-Agent</strong>
-            <ol class="agent-steps">
-              <li>rendern &amp; ansehen</li>
-              <li>Zeichnung lesen</li>
-              <li>B-Rep vermessen</li>
-              <li>5 Referenzen auswerten</li>
-              <li>Kosten berechnen</li>
-            </ol>
-            <div class="agent-models" aria-label="Verwendete Modelle">
-              <span>Qwen3.6 27B</span><span>Qwen3.8 27B</span>
-            </div>
-          </div>
-          <div class="teaser-arrow teaser-arrow-out" aria-hidden="true"><span></span></div>
-          <div class="teaser-card teaser-output">
-            <small>Stückpreis</small>
-            <span class="price">152,70 €</span>
-            <small>bei 1 Stück</small>
-          </div>
-        </div>
-      </div>
-      <h2 class="subtitle has-text-centered">
-        <span class="dnerf">VALUED</span> macht aus einem CAD-Bauteil und seiner Zeichnung einen Stückpreis, kalibriert an fünf Teilen, die dieselbe Firma bereits kalkuliert hat, vollständig in einer Sandbox.
-      </h2>
+.teaser {
+  font-family: 'Google Sans', sans-serif;
+}
 
-      <div class="columns key-numbers" id="key-numbers"></div>
-      <p class="key-footnote">* Größte Anzahl in einem Experiment. Durch Filterung wertet jedes Experiment unterschiedlich viele Teile aus.</p>
-    </div>
-  </div>
-</section>
 
-<!-- ============================================================ abstract -->
-<section class="section" id="kurzfassung">
-  <div class="container is-max-desktop">
-    <p class="kicker">Kurzfassung</p>
-    <div class="content abstract">
-      <p>Ein KI-Agent schätzt Stückpreise realer Bauteile: Er liest 3D-Modell und Zeichnung, vermisst das Teil per Code und
-        überträgt die Kalkulation von fünf ähnlichen Teilen, die dieselbe Firma bereits kalkuliert hat. Auf Teilen aus drei
-        Fertigungsbetrieben liegt er im Median 23&nbsp;% neben dem Preis der Firma; ein Sprachmodell, das nur das 3D-Modell als
-        Text bekommt, liegt bei 67&nbsp;%. Den großen Schritt bringen die ähnlichen Teile, nicht mehr Information über das Teil
-        selbst.</p>
-      <details class="more">
-        <summary>Wie wir vorgegangen sind</summary>
-        <p>Wir geben einem Sprachmodell Stufe für Stufe mehr Information: zuerst nur die STEP-Datei als Text oder die
-          Zeichnung als Bild, dann Auftragsdaten, dann einen automatisch optimierten Prompt, schließlich einen Agenten, der
-          in einer abgeschotteten Sandbox selbst Code ausführt, das Bauteil rendert und vermisst. In der letzten Stufe
-          bekommt der Agent die fünf geometrisch ähnlichsten Teile derselben Firma, jeweils mit ihrer Kalkulation als
-          lauffähigem Python-Code.</p>
-      </details>
-    </div>
-  </div>
-</section>
+.publication-title {
+}
 
-<!-- ============================================================ problem -->
-<section class="section" id="problem">
-  <div class="container is-max-desktop">
-    <p class="kicker">Problem</p>
-    <h2 class="title is-3">Der Preis steckt in der Zeichnung, nicht in der Geometrie</h2>
-    <div class="columns">
-      <div class="column"><div class="card-lite">
-        <span class="icon-bubble"><i class="fas fa-cube"></i></span>
-        <h3>Geometrie</h3><p class="muted">Volumen, Flächen, Aufspannungen</p>
-        <p>Die STEP-Datei legt die Form fest und damit das Materialvolumen und die Zahl der Aufspannungen.</p>
-      </div></div>
-      <div class="column"><div class="card-lite">
-        <span class="icon-bubble"><i class="fas fa-ruler-combined"></i></span>
-        <h3>Zeichnung</h3><p class="muted">Toleranzen, Oberflächengüte</p>
-        <p>Toleranzen und Oberflächengüte sind Kostentreiber ersten Ranges, und sie stehen nur in der Zeichnung.</p>
-      </div></div>
-      <div class="column"><div class="card-lite">
-        <span class="icon-bubble"><i class="fas fa-industry"></i></span>
-        <h3>Firma</h3><p class="muted">Stundensätze, Kalkulationsweise</p>
-        <p>Jede Firma bucht andere Prozesse und Minuten, deshalb hat dasselbe Teil unterschiedliche Preise.</p>
-      </div></div>
-    </div>
-  </div>
-</section>
+.publication-banner {
+  max-height: parent;
 
-<!-- ============================================================ method -->
-<section class="section" id="methode">
-  <div class="container is-max-desktop">
-    <p class="kicker">Methode</p>
-    <h2 class="title is-3">Vom rohen STEP-Text zum Few-Shot-Agenten</h2>
-    <div class="columns is-multiline">
-      <div class="column is-half"><div class="panel-lite">
-        <div class="panel-head">
-          <h3><span class="tag-letter">(a)</span> Experimentstufen</h3>
-          <p class="ladder-legend" aria-hidden="true"><i class="dot is-new"></i> erstmals <i class="dot is-used"></i> genutzt</p>
-        </div>
-        <div class="ladder-matrix">
-          <div class="ladder-labels" aria-hidden="true">
-            <span></span><span>STEP als Text</span><span>Zeichnung</span><span>Metadaten</span>
-            <span><abbr title="GEPA: automatische Prompt-Optimierung, bei der ein Sprachmodell den Prompt anhand der eigenen Fehler umschreibt.">GEPA</abbr>-Prompt</span><span>STEP per Code</span><span>Few-Shot-Teile</span><span>Qwen3.8 27B</span>
-          </div>
-          <div class="ladder-cols" id="ladder-row" role="tablist" aria-label="Experimente" aria-describedby="ladder-hint"></div>
-        </div>
-        <div class="phase-detail" id="ladder-detail" role="tabpanel">
-          <div class="detail-head">
-            <p class="tab-hint" id="ladder-hint"><i class="far fa-hand-pointer" aria-hidden="true"></i>
-              Spalte anklicken<span class="tab-keys"> · ← →</span></p>
-            <p class="phase-title" id="ladder-title">Experiment 1 · STEP-Text</p>
-          </div>
-          <p class="phase-text" id="ladder-text">Die rohe STEP-Datei als Text in einem einzigen Prompt, ohne weiteren Kontext.</p>
-        </div>
-      </div></div>
-      <div class="column is-half"><div class="panel-lite">
-        <h3><span class="tag-letter">(b)</span> Ähnliche Teile + Kalkulationen als Code</h3>
-        <div class="retrieval-row">
-          <div class="retrieval-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><b>cos ≥ 0,8?</b></div>
-          <pre class="code-mini">def costs(quantity):
-  material = ...
-  process += 4*65/quantity
-  return material, process, other</pre>
-        </div>
-        <p>Die fünf geometrisch ähnlichsten Teile derselben Firma, jedes mit seiner echten Kalkulation als lauffähiges Python.
-          Ähnlichkeiten unter 0,8 werden als grobe Orientierung markiert.</p>
-        <p class="memory-row"><span>Je Referenzteil</span>
-          <code>Kalkulation</code><code>Auftragsdaten</code><code>3D-Modell</code><code>Zeichnung</code>
-        </p>
-      </div></div>
-      <div class="column is-full more-row">
-        <button class="more-toggle" type="button" aria-expanded="false" aria-controls="method-c method-d">Weitere Details:
-          Ablauf des Agenten und Werkzeugpaket</button>
-      </div>
-      <div class="column is-half" id="method-c" hidden><div class="panel-lite">
-        <h3><span class="tag-letter">(c)</span> Sandbox-Agent, Phasen 0 bis 9</h3>
-        <div class="phase-row" id="phase-row" role="tablist" aria-label="Phasen des Agenten" aria-describedby="phase-hint"></div>
-        <div class="phase-detail" id="phase-detail" role="tabpanel">
-          <div class="detail-head">
-            <p class="tab-hint" id="phase-hint"><i class="far fa-hand-pointer" aria-hidden="true"></i>
-              Phase anklicken<span class="tab-keys"> · ← →</span></p>
-            <p class="phase-title" id="phase-title"></p>
-          </div>
-          <p class="phase-text" id="phase-text"></p>
-        </div>
-        <p class="memory-row"><span>Gedächtnis in Dateien</span>
-          <code>Plan</code><code>Vorgaben</code><code>Erkenntnisse</code><code>Notizen je Referenzteil</code><code>Kennzahlen</code>
-        </p>
-      </div></div>
-      <div class="column is-half" id="method-d" hidden><div class="panel-lite">
-        <h3><span class="tag-letter">(d)</span> Framework aus Agenten-Code</h3>
-        <div class="distill-flow" aria-hidden="true">
-          <div class="distill-runs">
-            <span class="run-card"><b>Lauf 1</b><i></i><i></i></span>
-            <span class="run-card"><b>Lauf 2</b><i></i><i></i></span>
-            <span class="run-card"><b>Lauf n</b><i></i><i></i></span>
-          </div>
-          <span class="distill-step"><span class="step-label">zusammen&shy;geführt</span> <i class="fas fa-arrow-right"></i></span>
-          <span class="distill-pkg"><code>step_2_aag</code><small>Python-Paket</small></span>
-          <span class="distill-step"><span class="step-label">import</span> <i class="fas fa-arrow-right"></i></span>
-          <span class="distill-agent"><img src="./static/images/teaser/agent.png" alt=""><small>Agent</small></span>
-        </div>
-        <p class="cap-label">Fertige Funktionen für den Agenten</p>
-        <div class="cap-chips">
-          <span>Volumen &amp; Masse</span><span>Hüllkörper</span><span>Flächen- &amp; Kantentypen</span>
-          <span>Koaxiale Bohrungen</span><span>Wandstärke</span><span>Symmetrie</span><span>Topologie</span>
-          <span>Flächengraph (AAG)</span>
-        </div>
-        <p class="cap-extra">dazu Werkzeuge, die 3D-Modell und Zeichnung als Bild ausgeben</p>
-        <p>Von den Qwen-Agenten selbst geschrieben, von uns nur zu einem Paket zusammengeführt: Der Agent ruft fertige
-          Funktionen auf, statt in jedem Lauf neu anzufangen.</p>
-      </div></div>
-    </div>
-  </div>
-</section>
+}
 
-<!-- ============================================================ data and metrics -->
-<section class="section" id="daten">
-  <div class="container is-max-desktop">
-    <p class="kicker">Daten und Messung</p>
-    <h2 class="title is-3">Reale Teile, echte Kalkulationen, ein Fehlermaß je Teil</h2>
-    <div class="columns">
-      <div class="column"><div class="card-lite">
-        <span class="icon-bubble"><i class="fas fa-database"></i></span>
-        <h3>Daten</h3><p class="muted">318 Einzelteile, drei Fertigungsbetriebe</p>
-        <p>Jedes Teil hat ein 3D-Modell (STEP) und den Stückpreis, den die Firma für eine bis fünf Bestellmengen kalkuliert
-          hat; dieser Preis ist der Ist-Wert. Aufgenommen wurden nur Einzelteile mit genau einem Volumenkörper, eindeutiger
-          Geometrie, gültigem Preis und mindestens einem Prozessschritt. 300 Teile haben genau eine technische Zeichnung;
-          auf ihnen rechnen alle Experimente mit Zeichnung oder Agent. Die Firmen bleiben anonym (Firma A, B, C).</p>
-      </div></div>
-      <div class="column"><div class="card-lite">
-        <span class="icon-bubble"><i class="fas fa-percent"></i></span>
-        <h3>Kennzahlen</h3><p class="muted">Median-APE und Median-AE über alle Stückpreise</p>
-        <p>Je Bestellmenge vergleichen wir geschätzten und kalkulierten Stückpreis. Der <strong>APE</strong> ist die
-          Abweichung in Prozent des Ist-Preises, der <strong>AE</strong> die Abweichung in Euro. Gezeigt wird jeweils der
-          <strong>Median</strong> über alle Stückpreise eines Experiments (Median-APE, Median-AE): Einzelne Preise mit
-          mehreren hundert Prozent Fehler würden den Mittelwert sonst stark verschieben. n zählt die Teile.</p>
-      </div></div>
-    </div>
-    <details class="more">
-      <summary>Warum die Zahl der Teile je Experiment schwankt</summary>
-      <p>Gewertet wird jedes Teil, für das ein Experiment einen gültigen Preis liefert. In 1 und 2 sind 87 STEP-Dateien als
-          Text länger als das Kontextfenster des Modells (262.144 Tokens). 3 und 3.1 werden nur auf dem zurückgehaltenen
-          Testteil bewertet, weil GEPA den Prompt auf den übrigen Teilen optimiert. Bei den Agenten fehlen Teile, für die
-          kein gültiger Preis abgegeben wurde. Modelle: Qwen3.6 27B, in 5.1 Qwen3.8 27B.</p>
-    </details>
-  </div>
-</section>
+.publication-banner video {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+  object-fit: fit;
+}
 
-<!-- ============================================================ results: ladder -->
-<section class="section" id="ergebnisse">
-  <div class="container is-max-desktop">
-    <p class="kicker">Ergebnisse</p>
-    <div class="heading-row">
-      <h2 class="title is-3">Erst die Referenzteile halbieren den Fehler</h2>
-      <div class="buttons has-addons metric-toggle" id="metric-toggle" role="tablist" aria-label="Kennzahl">
-        <button class="button is-rounded is-selected" role="tab" data-metric="APE" aria-selected="true">Median-APE</button>
-        <button class="button is-rounded" role="tab" data-metric="AE" aria-selected="false">Median-AE</button>
-      </div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-head">
-        <span class="muted" id="ladder-caption"></span>
-        <span class="legend-human"><i></i>Kalkulatoren: Vor- gegen Nachkalkulation, andere Teile</span>
-      </div>
-      <div id="ladder-chart" class="chart"></div>
-    </div>
-    <p class="chart-note">Ein Stückpreis ist der Preis eines Teils für eine angefragte Losgröße. Jeder Balken ist der
-      Median des Fehlers über alle gültig bewerteten Stückpreise eines Experiments; n darunter zählt die Teile.<span
-      id="lots-note"></span> Den größten Sprung bringen die Referenzteile (Experiment 4 → 5): Der Agent sieht nun, wie die
-      Firma kalkuliert. <strong>Die gestrichelte Linie misst etwas anderes:</strong> Bei <span id="human-count">31 anderen
-      Teilen</span> wurde die Vorkalkulation erfahrener Kalkulatoren mit den tatsächlichen Kosten nach der Fertigung
-      (Nachkalkulation) verglichen, ebenfalls je Stückpreis. Sie zeigt die Größenordnung menschlicher Schätzfehler, ist
-      aber kein direkter Vergleich. Beim Median-AE fehlt sie, weil der Fehler in Euro vom Preisniveau der Teile abhängt.</p>
-  </div>
-</section>
+.publication-header .hero-body {
+}
 
-<!-- ============================================================ results: distribution -->
-<section class="section" id="verteilung">
-  <div class="container is-max-desktop">
-    <p class="kicker">Ergebnisse</p>
-    <h2 class="title is-3">Der Few-Shot-Agent liegt selten weit daneben</h2>
-    <div class="columns">
-      <div class="column is-7"><div class="chart-card is-centered-chart">
-        <div id="cdf-chart" class="chart"></div>
-      </div></div>
-      <div class="column is-5" id="company-cards"></div>
-    </div>
-    <p class="chart-note">Links: Jede Linie zeigt, welcher Anteil der Stückpreise höchstens den prozentualen Fehler auf der
-      x-Achse hat; je höher die Linie, desto besser. Beim Few-Shot-Agenten liegen 54&nbsp;% der Stückpreise innerhalb von 25&nbsp;%
-      Fehler, beim Sprachmodell mit STEP-Text 18&nbsp;%. Rechts: Median-APE je Firma; der Few-Shot-Agent ist in allen drei
-      Firmen der genaueste Ansatz.</p>
-  </div>
-</section>
+.publication-title {
+    font-family: 'Google Sans', sans-serif;
+}
 
-<!-- ============================================================ agent run (data/run.json, scripts/export_run.py) -->
-<section class="section" id="lauf">
-  <div class="container is-max-desktop">
-    <p class="kicker">Agent im Einsatz</p>
-    <h2 class="title is-3">Wie der Agent ein Teil kalkuliert, Schritt für Schritt</h2>
-    <p class="run-intro">Ein echter, vollständiger Lauf aus MLflow, im Aufbau von Experiment 5.1: Der Agent kalkuliert
-      <strong>bracket-373</strong> aus dem öffentlichen Datensatz (siehe „Entdecken“), mit fünf ähnlichen Teilen und deren
-      Beispielkalkulation als Referenz. Jeder Werkzeugaufruf ist enthalten, auch Fehler und ihre Korrektur. Die
-      Überlegungen des Agenten stehen im englischen Original.</p>
-    <div class="run-stats" id="run-stats"></div>
-    <p class="run-label-row">Phasen in der Reihenfolge des Laufs, Breite nach Dauer. Vorgesehen ist 0 bis 9.</p>
-    <div class="run-phasebar" id="run-phasebar"></div>
-    <div class="buttons has-addons run-tabs" id="run-tabs" role="tablist" aria-label="Ansicht des Laufs">
-      <button class="button is-rounded is-selected" role="tab" aria-selected="true" aria-controls="run-steps" id="run-tab-steps">Ablauf</button>
-      <button class="button is-rounded" role="tab" aria-selected="false" aria-controls="run-files" id="run-tab-files" tabindex="-1">Dateien</button>
-      <button class="button is-rounded" role="tab" aria-selected="false" aria-controls="run-images" id="run-tab-images" tabindex="-1">Bilder</button>
-    </div>
-    <div class="run-panel" id="run-steps" role="tabpanel" aria-labelledby="run-tab-steps"></div>
-    <div class="run-panel" id="run-files" role="tabpanel" aria-labelledby="run-tab-files" hidden></div>
-    <div class="run-panel" id="run-images" role="tabpanel" aria-labelledby="run-tab-images" hidden></div>
-  </div>
-</section>
+.publication-authors {
+    font-family: 'Google Sans', sans-serif;
+}
 
-<!-- ============================================================ part explorer -->
-<section class="section" id="entdecken">
-  <div class="container is-max-desktop">
-    <p class="kicker">Entdecken</p>
-    <h2 class="title is-3">Die Geometriesuche findet Teile derselben Bauform</h2>
-    <p class="muted"><strong>Demo auf öffentlichen Daten.</strong> Ein Teil wählen: Daneben erscheinen seine nächsten Nachbarn, sortiert nach der Cosinus-Ähnlichkeit
-      der Geometrie-Einbettungen. Gestrichelt: Ähnlichkeit unter 0,80.</p>
-    <div id="parts-carousel" class="carousel results-carousel"></div>
-    <div class="part-detail" id="part-detail">
-      <div class="columns">
-        <div class="column is-4">
-          <div class="media-slot" id="part-render">Rendering</div>
-          <p class="detail-title has-text-centered" id="part-name"></p>
-        </div>
-        <div class="column">
-          <h3 class="detail-title">Ähnlichste Teile</h3>
-          <div class="ref-row" id="part-refs"></div>
-        </div>
-      </div>
-    </div>
-    <p class="source-note">Quelle der Teile: Datensatz aus Q. Zou und L. Zhu, „Bringing attention to CAD: Boundary
-      representation learning via transformer“, <i>Computer-Aided Design</i>, 103940, 2025. Die Renderings haben wir
-      aus den STEP-Dateien dieses Datensatzes erzeugt; Geometrie-Einbettung und Ähnlichkeitssuche sind unsere eigene Arbeit.</p>
-  </div>
-</section>
+.publication-venue {
+    color: #555;
+    width: fit-content;
+    font-weight: bold;
+}
 
-<!-- ============================================================ limitations -->
-<section class="section" id="grenzen">
-  <div class="container is-max-desktop">
-    <p class="kicker">Grenzen</p>
-    <h2 class="title is-3">Was der Agent noch nicht sieht</h2>
-    <div class="content">
-      <ul>
-        <li>Die Referenzteile werden nur nach geometrischer Ähnlichkeit ausgewählt. Fertigungsrelevante Angaben aus der
-          Zeichnung, etwa Toleranzen, Oberflächengüte, Beschichtungen oder Wärmebehandlungen, fließen in die Auswahl nicht ein.
-          Der Agent liest diese Angaben erst danach aus den Zeichnungen, beim eigenen Teil wie bei den Referenzteilen.</li>
-        <li>Fast alle Teile sind nur für eine einzige Bestellmenge kalkuliert, im Median für höchstens zwei Stück. Ob der
-          Agent Rüstkosten bei größeren Serien richtig auf die Stückzahl verteilt, ist damit kaum geprüft.</li>
-        <li>Die Läufe sind nicht deterministisch: Wird dasselbe Teil zweimal kalkuliert, kann der Agent zu unterschiedlichen
-          Preisen kommen. Das ist in der Praxis nicht anders, denn auch zwei Kalkulatoren derselben Firma bewerten ein Teil
-          selten gleich. Wie groß die Streuung beim Agenten ist, haben wir noch nicht gemessen, weil jedes Teil je Experiment
-          nur einmal kalkuliert wurde.</li>
-      </ul>
-    </div>
-  </div>
-</section>
+.publication-awards {
+    color: #ff3860;
+    width: fit-content;
+    font-weight: bolder;
+}
 
-<!-- ============================================================ glossary -->
-<section class="section" id="begriffe">
-  <div class="container is-max-desktop">
-    <p class="kicker">Begriffe</p>
-    <h2 class="title is-3">Kurz erklärt</h2>
-    <details class="more">
-      <summary>Begriffe anzeigen</summary>
-    <dl class="glossary">
-      <dt>STEP</dt><dd>Austauschformat für 3D-Modelle (ISO 10303). Die Datei ist Text und beschreibt die exakte Geometrie.</dd>
-      <dt>B-Rep</dt><dd>Boundary Representation: das Bauteil als Menge seiner Flächen, Kanten und Punkte, so wie es in der STEP-Datei steht.</dd>
-      <dt>AAG</dt><dd>Attributed Adjacency Graph: ein Graph, in dem jede Fläche ein Knoten ist und benachbarte Flächen verbunden sind. Daraus lassen sich Bohrungen, Taschen und Absätze ablesen.</dd>
-      <dt>Technische Zeichnung</dt><dd>Die 2D-Zeichnung zum Teil mit Maßen, Toleranzen, Oberflächengüte und Werkstoff. Diese Angaben stehen nicht im 3D-Modell.</dd>
-      <dt>Zero-Shot / Few-Shot</dt><dd>Zero-Shot: Das Modell schätzt ohne Beispiele. Few-Shot: Es bekommt gelöste Beispiele, hier fünf bereits kalkulierte Teile derselben Firma.</dd>
-      <dt>GEPA</dt><dd>Verfahren zur automatischen Prompt-Optimierung: Ein Sprachmodell analysiert die Fehler des aktuellen Prompts und schreibt ihn schrittweise um.</dd>
-      <dt>Agent, Sandbox</dt><dd>Ein Agent ist ein Sprachmodell, das selbst Werkzeuge aufruft, hier Python und Shell. Die Sandbox ist eine abgeschottete virtuelle Maschine, in der er das ohne Zugriff auf andere Systeme tun kann.</dd>
-      <dt>Geometrie-Einbettung, Cosinus-Ähnlichkeit</dt><dd>Jedes 3D-Modell wird in einen Zahlenvektor übersetzt. Die Cosinus-Ähnlichkeit zweier Vektoren (bis 1) misst, wie ähnlich sich die Formen sind; gesucht wird nur innerhalb derselben Firma.</dd>
-      <dt>Mengenstaffel</dt><dd>Stückpreise für verschiedene Bestellmengen. Rüstkosten verteilen sich auf mehr Teile, deshalb sinkt der Stückpreis mit der Menge.</dd>
-      <dt>Vor- und Nachkalkulation</dt><dd>Vorkalkulation: Kostenschätzung vor der Fertigung, Grundlage des Angebots. Nachkalkulation: tatsächliche Kosten nach der Fertigung.</dd>
-      <dt>Kontextfenster</dt><dd>Die größte Textmenge, die ein Sprachmodell auf einmal verarbeiten kann, gemessen in Tokens (Wortteilen).</dd>
-      <dt>Qwen</dt><dd>Offene Sprachmodelle; wir nutzen Varianten mit 27 Milliarden Parametern, die auf eigenen Servern laufen.</dd>
-    </dl>
-    </details>
-  </div>
-</section>
+.publication-authors {
+}
 
-<footer class="footer">
-  <div class="container">
-    <div class="columns is-centered">
-      <div class="column is-8">
-        <div class="content">
-          <div class="funding">
-            <!-- Official funding logos, unmodified, as delivered by the funding body. They stay hidden until the
-                 files exist in static/images/funding/ (see README.md, "Funding logos"). -->
-            <div class="funding-logos">
-              <img data-optional src="./static/images/funding/bmwe_logo.png"
-                   alt="Gefördert durch: Bundesministerium für Wirtschaft und Energie aufgrund eines Beschlusses des Deutschen Bundestages">
-              <img data-optional src="./static/images/funding/zim_logo.png" alt="ZIM: Zentrales Innovationsprogramm Mittelstand">
-            </div>
-            <p>Das Forschungsprojekt wird vom Bundesministerium für Wirtschaft und Energie (BMWE) aufgrund eines Beschlusses
-              des Deutschen Bundestages im Rahmen des Zentralen Innovationsprogramms Mittelstand (ZIM) gefördert.</p>
-          </div>
-          <p><strong>Danksagung.</strong> Wir danken unserem Datenpartner und den beteiligten Fertigungsbetrieben
-            für die Kalkulationsdaten.</p>
-          <p>
-            Diese Website steht unter der Lizenz
-            <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/deed.de">Creative Commons CC BY-SA 4.0</a>.
-            Sie basiert auf der Projektseiten-Vorlage von <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a>.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</footer>
+.publication-authors a {
+   color: hsl(204, 86%, 53%) !important;
+}
 
-</body>
-</html>
+.publication-authors a:hover {
+    text-decoration: underline;
+}
+
+.author-block {
+  display: inline-block;
+}
+
+.publication-banner img {
+}
+
+.publication-authors {
+  /*color: #4286f4;*/
+}
+
+.publication-video {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%;
+
+    overflow: hidden;
+    border-radius: 10px !important;
+}
+
+.publication-video iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.publication-body img {
+}
+
+.results-carousel {
+  overflow: hidden;
+}
+
+.results-carousel .item {
+  margin: 5px;
+  overflow: hidden;
+  border: 1px solid #bbb;
+  border-radius: 10px;
+  padding: 0;
+  font-size: 0;
+}
+
+.results-carousel video {
+  margin: 0;
+}
+
+
+.interpolation-panel {
+  background: #f5f5f5;
+  border-radius: 10px;
+}
+
+.interpolation-panel .interpolation-image {
+  width: 100%;
+  border-radius: 5px;
+}
+
+.interpolation-video-column {
+}
+
+#interpolation-image-wrapper {
+  width: 100%;
+}
+#interpolation-image-wrapper img {
+  border-radius: 5px;
+}
+
+
+/* ======================================================================
+   PriceAgent theme (KIANA palette). Everything above is the original
+   Nerfies stylesheet; everything below adapts it.
+   ====================================================================== */
+:root {
+  --teal: #3babb9;
+  --petrol: #0b5b5d;
+  --deep: #0f3433;
+  --ink: #140f07;
+  --highlight: #bdf8fc;
+  --teal-soft: #9fd9df;
+  --tint: #f0fafb;
+  --tint-2: #e6f5f7;
+  --line: #d5e3e4;
+  --muted: #5d6b6c;
+  --radius: 12px;
+}
+
+html { scroll-behavior: smooth; background: #fff; }
+body { color: var(--ink); background: #fff; }
+.title, .subtitle { color: var(--ink); }
+a { color: var(--petrol); }
+a:hover { color: var(--teal); }
+.muted { color: var(--muted); }
+.container.is-max-desktop { max-width: 960px !important; }
+
+/* ---------------------------------------------------------- placeholder labels */
+.placeholder-banner {
+  background: var(--deep); color: var(--highlight); text-align: center;
+  font-size: 0.85rem; padding: 0.45rem 1rem;
+}
+.placeholder-banner strong { color: #fff; }
+.todo {
+  display: inline-block; margin-top: 0.85rem;
+  background: var(--highlight); color: var(--deep); border: 1.5px solid var(--petrol);
+  border-radius: 6px; padding: 0.15rem 0.6rem; font-size: 0.78rem; font-weight: 700;
+}
+body:not(.show-todo) .todo { display: none; }
+
+/* ---------------------------------------------------------- hero */
+.publication-title { font-weight: 700; letter-spacing: -0.02em; }
+.publication-subtitle { color: var(--petrol) !important; font-family: 'Google Sans', sans-serif; }
+.publication-authors a { color: var(--petrol) !important; }
+.publication-affiliations { color: var(--muted); margin-top: 0.2rem; }
+.publication-venue { color: var(--muted); font-weight: normal; font-style: italic; margin: 0.2rem auto 0; }
+.publication-links .button.is-dark { background-color: var(--ink); }
+.publication-links .button.is-dark:hover { background-color: var(--petrol); }
+.button.is-disabled { opacity: 0.45; pointer-events: none; }
+
+.tldr { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0.75rem; }
+.chip {
+  border: 1.5px solid var(--teal); background: var(--tint-2); color: var(--ink);
+  border-radius: 999px; padding: 0.45rem 1rem; font-weight: 700; font-size: 1rem;
+  font-family: 'Google Sans', sans-serif;
+}
+.chip-dark { background: var(--deep); border-color: var(--deep); color: #fff; }
+.tldr .op { color: var(--petrol); font-weight: 800; font-size: 1.4rem; }
+
+/* ---------------------------------------------------------- teaser */
+.teaser-figure { background: var(--tint); border: 1.5px solid var(--teal); border-radius: 16px; padding: 1rem 1.5rem 1.5rem; }
+.teaser-figure > .todo { margin-top: 0; }
+.teaser-flow { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; }
+.teaser-card { border-radius: var(--radius); padding: 1rem; text-align: center; }
+.teaser-input { background: #fff; border: 1.5px solid var(--teal); width: 26%; }
+.teaser-input strong { display: block; font-size: 0.9rem; margin-top: 0.4rem; }
+.part-glyph { width: 100%; max-width: 140px; }
+.part-glyph polygon { fill: var(--tint-2); stroke: var(--petrol); stroke-width: 2; }
+.teaser-agent { background: var(--deep); width: 34%; padding: 1.2rem 1rem; }
+.teaser-agent strong { color: #fff; font-size: 1.15rem; }
+.agent-steps { list-style: none; margin: 0.6rem 0 0; padding: 0; }
+.agent-steps li { color: var(--highlight); font-size: 0.88rem; padding: 0.12rem 0; }
+.agent-steps li::before { content: "▸ "; }
+.teaser-output { background: #fff; border: 2px solid var(--petrol); width: 22%; }
+.teaser-output small { display: block; color: var(--muted); font-size: 0.82rem; }
+.teaser-output .price { display: block; font-size: 1.9rem; font-weight: 800; color: var(--deep); margin: 0.3rem 0; white-space: nowrap; }
+.teaser-arrow { flex: 1; height: 3px; background: var(--petrol); position: relative; min-width: 24px; }
+.teaser-arrow::after {
+  content: ""; position: absolute; right: -2px; top: -6px;
+  border-left: 11px solid var(--petrol); border-top: 7.5px solid transparent; border-bottom: 7.5px solid transparent;
+}
+.teaser-arrow span {
+  position: absolute; top: -4px; left: 0; width: 11px; height: 11px; border-radius: 50%;
+  background: var(--highlight); border: 2px solid var(--petrol);
+}
+.teaser .subtitle { margin-top: 1.2rem; font-size: 1.15rem; }
+.dnerf { color: var(--petrol); font-weight: 700; }
+
+/* ---------------------------------------------------------- key numbers */
+.key-numbers { margin-top: 1.5rem; }
+.key-number { background: var(--tint-2); border-radius: var(--radius); padding: 1.4rem 1rem; text-align: center; height: 100%; }
+.key-number .big { display: block; font-size: 2.3rem; font-weight: 800; color: var(--petrol); line-height: 1.1; font-family: 'Google Sans', sans-serif; }
+.key-number .small { display: block; font-size: 0.9rem; margin-top: 0.5rem; }
+
+/* ---------------------------------------------------------- section headings */
+.kicker { text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); font-weight: 700; font-size: 0.8rem; margin-bottom: 0.3rem; }
+.heading-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+.heading-row .title { margin-bottom: 0 !important; }
+
+/* ---------------------------------------------------------- cards */
+.card-lite { border: 1.5px solid var(--teal); border-radius: var(--radius); padding: 1.2rem; height: 100%; background: #fff; }
+.card-lite h3 { font-weight: 700; font-size: 1.1rem; margin-top: 0.6rem; }
+.card-lite .muted { font-size: 0.88rem; margin-bottom: 0.5rem; }
+.icon-bubble {
+  display: inline-flex; align-items: center; justify-content: center; width: 2.6rem; height: 2.6rem;
+  border-radius: 50%; background: var(--tint-2); border: 1.5px solid var(--teal); color: var(--petrol);
+}
+.panel-lite { background: var(--tint); border: 1.5px solid var(--teal); border-radius: var(--radius); padding: 1.1rem 1.2rem; height: 100%; }
+.panel-lite h3 { font-weight: 700; margin-bottom: 0.8rem; }
+.panel-lite p { font-size: 0.92rem; margin-top: 0.9rem; }
+.tag-letter { color: var(--petrol); margin-right: 0.3rem; }
+
+
+.phase-row { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: space-between; padding: 1.6rem 0 0.6rem; }
+.phase-row span {
+  width: 2rem; height: 2rem; border-radius: 50%; border: 1.5px solid var(--petrol); background: #fff;
+  display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;
+}
+.phase-row span.active { background: var(--deep); color: #fff; box-shadow: 0 0 0 4px var(--highlight); }
+
+.retrieval-row { display: flex; gap: 1rem; align-items: stretch; }
+.retrieval-dots {
+  display: grid; grid-template-columns: repeat(3, 1.4rem); gap: 0.6rem; align-content: start;
+  background: #fff; border: 1.5px solid var(--teal); border-radius: 10px; padding: 0.8rem;
+}
+.retrieval-dots i { width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--tint-2); border: 1.5px solid var(--teal); }
+.retrieval-dots b { grid-column: 1 / -1; font-size: 0.78rem; white-space: nowrap; }
+pre.code-mini, .bibtex-card pre {
+  background: var(--deep); color: var(--highlight); border-radius: 10px;
+  font-size: 0.8rem; line-height: 1.55; white-space: pre; overflow-x: auto;
+}
+pre.code-mini { flex: 1; padding: 0.8rem 1rem; margin: 0; }
+
+
+/* ---------------------------------------------------------- charts */
+.chart-card { border: 1.5px solid var(--line); border-radius: var(--radius); padding: 1rem 1.2rem; background: #fff; height: 100%; }
+.chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; font-size: 0.85rem; }
+.legend-human { font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; }
+.legend-human i { width: 28px; border-top: 2px dashed var(--ink); }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { font-family: 'Noto Sans', sans-serif; fill: var(--ink); }
+.chart .axis { stroke: var(--ink); stroke-width: 1.2; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .bar-label { font-size: 13px; font-weight: 700; }
+.chart .value-label { font-size: 11px; fill: var(--muted); }
+.chart .human { stroke: var(--ink); stroke-width: 1.6; stroke-dasharray: 6 4; }
+.chart .tick { font-size: 11px; fill: var(--muted); }
+.chart .legend-text { fill: var(--ink); font-size: 12px; }
+
+.metric-toggle .button { border: 1.5px solid var(--petrol); color: var(--petrol); font-weight: 700; }
+.metric-toggle .button.is-selected { background: var(--petrol); color: #fff; }
+
+.company-card { background: var(--tint); border: 1.5px solid var(--teal); border-radius: var(--radius); padding: 0.8rem 1rem; margin-bottom: 0.9rem; }
+.company-card:last-child { margin-bottom: 0; }
+.company-card h4 { font-weight: 700; margin-bottom: 0.4rem; }
+.company-bar { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; margin: 0.25rem 0; }
+.company-bar .track { flex: 1; background: #fff; border-radius: 4px; height: 10px; overflow: hidden; }
+.company-bar .fill { display: block; height: 100%; border-radius: 4px; }
+.company-bar em { width: 7.5rem; font-style: normal; color: var(--muted); }
+
+.media-slot {
+  display: flex; align-items: center; justify-content: center; background: var(--tint-2);
+  border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-size: 0.85rem; min-height: 150px;
+  margin-bottom: 0.8rem; overflow: hidden;
+}
+.media-slot img { width: 100%; height: 100%; object-fit: contain; }
+.nav-pill { background: var(--petrol); color: #fff; border: none; font-weight: 700; }
+.nav-pill:hover { background: var(--deep); color: #fff; }
+.nav-pill[disabled] { background: var(--petrol); opacity: 0.4; }
+
+/* ---------------------------------------------------------- part explorer */
+.results-carousel .item { border: none; font-size: 1rem; padding: 0.15rem; margin: 0.3rem; overflow: visible; }
+.part-thumb {
+  width: 100%; aspect-ratio: 4 / 3; border-radius: 10px; border: 1.5px solid var(--line); background: var(--tint-2);
+  cursor: pointer; padding: 0.4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2rem;
+  font: inherit; font-size: 0.72rem; color: var(--muted);
+}
+.part-thumb svg { width: 62%; }
+.part-thumb svg polygon, .ref-card svg polygon { fill: #fff; stroke: var(--teal); stroke-width: 2; }
+.part-thumb[aria-selected="true"] { border: 2.5px solid var(--petrol); box-shadow: 0 0 0 3px var(--highlight); color: var(--ink); }
+.part-thumb:focus-visible, .nav-pill:focus-visible, .metric-toggle .button:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+.results-carousel .slider-navigation-previous, .results-carousel .slider-navigation-next { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); }
+.part-detail { border: 1.5px solid var(--teal); border-radius: 16px; padding: 1.2rem; margin-top: 1rem; }
+.detail-title { font-weight: 700; margin-bottom: 0.7rem; }
+.ref-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin-bottom: 1.1rem; }
+.ref-card {
+  border: 1.5px solid var(--teal); background: var(--tint); border-radius: 10px; padding: 0.5rem;
+  text-align: center; font-size: 0.8rem; font-weight: 700;
+}
+.ref-card svg { width: 60%; display: block; margin: 0.2rem auto 0.3rem; }
+.ref-card.weak { background: #fff; border-style: dashed; color: var(--muted); }
+
+/* ---------------------------------------------------------- bibtex + footer */
+.bibtex-card { position: relative; }
+.bibtex-card pre { padding: 1.3rem 1.5rem; font-size: 0.88rem; }
+.bibtex-card pre code { background: transparent; color: var(--highlight); padding: 0; }
+.copy-pill { position: absolute; top: 0.8rem; right: 0.8rem; background: var(--teal); color: var(--ink); border: none; font-weight: 700; }
+.footer { background: var(--tint); }
+.footer .icon-link { color: var(--deep); }
+
+/* ---------------------------------------------------------- small screens */
+@media (max-width: 768px) {
+  .teaser-flow { flex-direction: column; }
+  .teaser-card { width: 100% !important; }
+  .teaser-arrow { width: 3px; height: 28px; flex: none; }
+  .teaser-arrow::after {
+    right: -6px; top: auto; bottom: -4px;
+    border-left: 7.5px solid transparent; border-right: 7.5px solid transparent;
+    border-top: 11px solid var(--petrol); border-bottom: none;
+  }
+  .teaser-arrow span { display: none; }
+  .ref-row { grid-template-columns: repeat(3, 1fr); }
+  .retrieval-row { flex-direction: column; }
+}
+
+/* ---------------------------------------------------------- fixes after visual review */
+.teaser .hero-body { padding-left: 0; padding-right: 0; }
+#BibTeX .title { color: var(--ink); }
+.chart-card.is-centered-chart { display: flex; align-items: center; }
+.chart-card.is-centered-chart .chart { width: 100%; }
+.chart .value-label { paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+.results-carousel { padding: 0.3rem 0; }
+@media (max-width: 1023px) {
+  .teaser .hero-body { padding-left: 1.5rem; padding-right: 1.5rem; }
+}
+.nav-pill:focus, .nav-pill:active { color: #fff; border: none; }
+.nav-pill:focus:not(:active) { box-shadow: 0 0 0 3px var(--highlight); }
+@media (max-width: 768px) {
+  .teaser-arrow { min-width: 0; align-self: center; }
+}
+
+/* ---------------------------------------------------------- teaser v2: inputs, references, synced highlights */
+.teaser-flow { align-items: stretch; }
+.teaser-inputs { width: 46%; display: flex; flex-direction: column; gap: 0.75rem; }
+.input-group { background: #fff; border: 1.5px solid var(--teal); border-radius: var(--radius); padding: 0.7rem 0.8rem; }
+.group-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--petrol); margin-bottom: 0.5rem; }
+.group-note { font-size: 0.75rem; color: var(--muted); margin-top: 0.45rem; text-align: center; }
+.group-note code { background: var(--tint-2); color: var(--deep); padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.72rem; }
+.input-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.input-tile {
+  border: 1.5px solid var(--line); border-radius: 10px; background: var(--tint); padding: 0.5rem;
+  text-align: center; display: flex; flex-direction: column; align-items: center;
+}
+.input-tile svg { width: 64%; max-width: 92px; }
+.input-tile strong { font-size: 0.82rem; margin-top: 0.25rem; font-family: 'Google Sans', sans-serif; }
+.input-tile small { font-size: 0.7rem; color: var(--muted); }
+.icon-step .face-top { fill: var(--tint-2); stroke: var(--petrol); stroke-width: 2; stroke-linejoin: round; }
+.icon-step .face-left { fill: var(--teal-soft); stroke: var(--petrol); stroke-width: 2; stroke-linejoin: round; }
+.icon-step .face-right { fill: var(--teal); stroke: var(--petrol); stroke-width: 2; stroke-linejoin: round; }
+.icon-step .hole { fill: #fff; stroke: var(--petrol); stroke-width: 2; }
+.icon-drawing .sheet { fill: #fff; stroke: var(--petrol); stroke-width: 2; }
+.icon-drawing .view { fill: none; stroke: var(--teal); stroke-width: 2; }
+.icon-drawing .dim { stroke: var(--petrol); stroke-width: 1.5; }
+.icon-drawing .title-block { fill: var(--tint-2); stroke: var(--petrol); stroke-width: 1.5; }
+.icon-drawing text { font-size: 9px; font-weight: 700; fill: var(--deep); font-family: 'Noto Sans', sans-serif; }
+
+.ref-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.4rem; }
+.ref-mini {
+  border: 1.5px solid var(--line); border-radius: 8px; background: var(--tint); padding: 0.35rem 0.3rem 0.3rem;
+  display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+}
+.ref-mini svg { width: 80%; }
+.ref-mini svg polygon { fill: #fff; stroke: var(--teal); stroke-width: 2; }
+.calc-lines { display: flex; flex-direction: column; gap: 3px; width: 82%; padding: 4px 5px; background: var(--deep); border-radius: 4px; }
+.calc-lines i { display: block; height: 3px; border-radius: 2px; background: var(--highlight); opacity: 0.85; }
+.calc-lines i:nth-child(2) { width: 70%; }
+.calc-lines i:nth-child(3) { width: 85%; }
+.ref-mini b { font-size: 0.68rem; color: var(--deep); white-space: nowrap; }
+
+.teaser-arrows { flex: 1; display: flex; flex-direction: column; justify-content: space-around; min-width: 34px; }
+.teaser-arrows .teaser-arrow { flex: none; width: 100%; }
+.teaser-arrow-out { align-self: center; }
+.teaser-agent { width: 27%; display: flex; flex-direction: column; justify-content: center; }
+.teaser-output { width: 17%; display: flex; flex-direction: column; justify-content: center; align-self: center; }
+
+
+/* ---------------------------------------------------------- method (b): clickable phases */
+.phase-row { padding: 0.4rem 0 0.2rem; }
+.phase-btn {
+  width: 2.1rem; height: 2.1rem; border-radius: 50%; border: 1.5px solid var(--petrol); background: #fff;
+  display: inline-flex; align-items: center; justify-content: center; font: inherit; font-weight: 700; font-size: 0.85rem;
+  color: var(--ink); cursor: pointer; padding: 0; transition: background 0.15s ease;
+}
+.phase-btn:hover { background: var(--tint-2); }
+.phase-btn[aria-selected="true"] { background: var(--deep); color: #fff; box-shadow: 0 0 0 4px var(--highlight); }
+.phase-btn.is-key { border-width: 2.5px; }
+.phase-btn:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+.phase-detail { background: #fff; border: 1.5px solid var(--line); border-radius: 10px; padding: 0.7rem 0.9rem; margin-top: 0.9rem; min-height: 7.2rem; }
+.panel-lite .phase-detail p { margin-top: 0; }
+.phase-title { font-weight: 700; color: var(--petrol); font-size: 0.92rem; margin-bottom: 0.25rem; }
+.phase-text { font-size: 0.88rem; }
+
+@media (max-width: 768px) {
+  .teaser-inputs { width: 100%; }
+  .teaser-arrows { flex-direction: row; justify-content: center; min-width: 0; height: 28px; flex: none; }
+  .teaser-arrows .teaser-arrow + .teaser-arrow { display: none; }
+  .teaser-arrows .teaser-arrow { width: 3px; height: 28px; }
+  .ref-strip { gap: 0.3rem; }
+  .ref-mini { padding-left: 0.1rem; padding-right: 0.1rem; }
+  .ref-mini b { font-size: 0.6rem; }
+}
+
+/* ---------------------------------------------------------- PNG images from static/images */
+.input-tile img { width: 72%; max-width: 110px; height: auto; display: block; }
+.ref-mini img { width: 92%; height: auto; display: block; }
+.part-thumb img { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; flex: 1; min-height: 0; }
+.part-thumb { padding: 0.25rem; overflow: hidden; }
+.part-thumb span { line-height: 1.2; }
+.ref-card img { width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 6px; display: block; margin-bottom: 0.3rem; }
+.ref-card.weak img { opacity: 0.7; }
+.media-slot { aspect-ratio: 1; min-height: 0; }
+.ref-card .ref-name { display: block; font-weight: 400; color: var(--muted); font-size: 0.72rem; }
+.media-slot img { object-fit: contain; }
+
+/* ---------------------------------------------------------- part strip: arrows in their own gutters */
+#parts-carousel { position: relative; padding: 0 52px; overflow: visible; }
+#parts-carousel .slider { overflow: hidden; }
+#parts-carousel > .slider-navigation-previous, #parts-carousel > .slider-navigation-next {
+  top: 50%; margin-top: -20px; width: 40px; height: 40px; background: var(--petrol); color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); transition: background 0.15s ease;
+}
+#parts-carousel > .slider-navigation-previous { left: 4px; }
+#parts-carousel > .slider-navigation-next { right: 4px; }
+#parts-carousel > .slider-navigation-previous:hover, #parts-carousel > .slider-navigation-next:hover { background: var(--deep); transform: none; }
+#parts-carousel > .slider-navigation-previous:focus-visible, #parts-carousel > .slider-navigation-next:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+#parts-carousel > .slider-navigation-previous svg, #parts-carousel > .slider-navigation-next svg { color: #fff; fill: #fff; }
+@media (max-width: 768px) { #parts-carousel { padding: 0 46px; } }
+
+/* ---------------------------------------------------------- hero: KIANA headline */
+.publication-eyebrow {
+  text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.85rem; font-weight: 700;
+  color: var(--teal); margin-bottom: 0.4rem; font-family: 'Google Sans', sans-serif;
+}
+.publication-subtitle strong { color: var(--deep); font-weight: 700; }
+
+/* ---------------------------------------------------------- teaser: models in the agent box */
+.agent-models { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; margin-top: 0.8rem; }
+.agent-models span {
+  border: 1px solid rgba(189, 248, 252, 0.45); color: #fff; border-radius: 999px;
+  padding: 0.12rem 0.6rem; font-size: 0.74rem; font-family: 'Google Sans', sans-serif; white-space: nowrap;
+}
+
+.agent-icon { width: 56px; height: 56px; display: block; margin: 0 auto 0.5rem; }
+
+/* ---------------------------------------------------------- funding notice (logos unmodified, on white) */
+.funding { background: #fff; border: 1.5px solid var(--line); border-radius: var(--radius); padding: 1.2rem 1.4rem; margin-bottom: 1.4rem; }
+.funding-logos { display: flex; flex-wrap: wrap; align-items: center; gap: 2.5rem; margin-bottom: 0.9rem; }
+.funding-logos[hidden], .funding-logos img[hidden] { display: none; }
+/* the style guide asks for at least 135 px on screen, protection zone included; the official files carry that zone */
+.funding-logos img { height: 135px; width: auto; max-width: 100%; object-fit: contain; }
+.funding p { margin-bottom: 0; }
+
+/* ---------------------------------------------------------- method (a): which inputs each experiment uses */
+.ladder-matrix { display: grid; grid-template-columns: 6.6rem 1fr; align-items: start; margin-top: 0.2rem; }
+.ladder-labels, .ladder-col { display: grid; grid-template-rows: 1.6rem repeat(7, 1.45rem); align-items: center; }
+.ladder-labels span { font-size: 0.8rem; color: var(--ink); white-space: nowrap; }
+.ladder-cols { display: grid; grid-template-columns: repeat(9, 1fr); }
+.ladder-col {
+  justify-items: center; background: none; border: 0; padding: 0 0 0.2rem; margin: 0 1px; border-radius: 6px;
+  font: inherit; color: var(--ink); cursor: pointer; transition: background 0.15s ease;
+}
+.ladder-col b { font-family: 'Google Sans', sans-serif; font-size: 0.85rem; color: var(--petrol); }
+.ladder-col:hover { background: var(--tint-2); }
+.ladder-col[aria-selected="true"] { background: var(--highlight); }
+.ladder-col:focus-visible { outline: 3px solid var(--petrol); outline-offset: 1px; }
+/* the three families: STEP text | drawing | agent */
+.ladder-col:nth-child(2), .ladder-col:nth-child(4), .ladder-col:nth-child(6) { box-shadow: 1px 0 0 0 var(--line); }
+.dot { display: inline-block; border-radius: 50%; }
+.dot.is-used { width: 12px; height: 12px; background: var(--petrol); }
+.dot.is-new { width: 12px; height: 12px; background: var(--teal); }
+.dot.is-off { width: 6px; height: 6px; background: var(--line); }
+.ladder-legend { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem !important; }
+.ladder-legend .dot { margin-left: 0.6rem; }
+.ladder-legend .dot:first-child { margin-left: 0; }
+
+/* ---------------------------------------------------------- method (a) + (b): same rhythm */
+.phase-row { display: grid; grid-template-columns: repeat(10, 1fr); justify-items: center; gap: 0.3rem; padding: 0.6rem 0 0.2rem; }
+.phase-detail { min-height: 6.6rem; }
+@media (max-width: 480px) {
+  .phase-row { grid-template-columns: repeat(5, 1fr); row-gap: 0.5rem; }
+  .ladder-matrix { grid-template-columns: 5.6rem 1fr; }
+  .ladder-labels span { font-size: 0.72rem; }
+  .dot.is-used, .dot.is-new { width: 10px; height: 10px; }
+}
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+.panel-head h3 { margin-bottom: 0 !important; }
+.panel-head .ladder-legend { margin: 0 !important; }
+#ladder-detail { min-height: 4.6rem; }
+.memory-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-top: 0.8rem !important; font-size: 0.8rem; }
+.memory-row span { font-weight: 700; color: var(--petrol); margin-right: 0.2rem; }
+.memory-row code { background: #fff; border: 1px solid var(--line); color: var(--deep); border-radius: 4px; padding: 0.05rem 0.35rem; font-size: 0.74rem; }
+
+/* ---------------------------------------------------------- method (d): framework from agent code */
+.distill-flow { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+.distill-runs { display: grid; gap: 0.25rem; }
+.run-card {
+  display: grid; grid-template-columns: auto 1fr; column-gap: 0.4rem; row-gap: 3px; align-items: center;
+  background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 0.2rem 0.45rem; width: 5.4rem;
+}
+.run-card b { grid-row: span 2; font-size: 0.68rem; color: var(--muted); font-weight: 700; }
+.run-card i { height: 3px; border-radius: 2px; background: var(--teal-soft); }
+.run-card i + i { width: 70%; }
+.distill-step { display: flex; flex-direction: column; align-items: center; font-size: 0.68rem; color: var(--petrol); font-weight: 700; text-align: center; line-height: 1.2; }
+.distill-step svg, .distill-step i { margin-top: 0.15rem; }
+.distill-pkg {
+  display: flex; flex-direction: column; align-items: center; background: var(--deep); border-radius: 10px;
+  padding: 0.55rem 0.7rem; box-shadow: 0 0 0 3px var(--highlight);
+}
+.distill-pkg code { background: transparent; color: #fff; font-size: 0.85rem; font-weight: 700; padding: 0; }
+.distill-pkg small { color: var(--highlight); font-size: 0.66rem; white-space: nowrap; }
+.distill-agent { display: flex; flex-direction: column; align-items: center; background: var(--deep); border-radius: 10px; padding: 0.35rem 0.5rem; }
+.distill-agent img { width: 34px; height: 34px; }
+.distill-agent small { color: #fff; font-size: 0.66rem; }
+.cap-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--petrol); margin: 0.9rem 0 0.35rem !important; }
+.cap-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.cap-chips span { background: #fff; border: 1px solid var(--teal); border-radius: 999px; padding: 0.08rem 0.55rem; font-size: 0.76rem; }
+.panel-lite p.cap-extra { font-size: 0.78rem; color: var(--muted); margin-top: 0.4rem; }
+.cap-extra code { background: var(--tint-2); color: var(--deep); font-size: 0.74rem; padding: 0.02rem 0.3rem; border-radius: 4px; }
+@media (max-width: 480px) {
+  .run-card { width: 4.4rem; }
+  .distill-pkg { padding: 0.45rem 0.5rem; }
+  .distill-pkg small { white-space: normal; text-align: center; }
+}
+@media (max-width: 480px) {
+  .distill-step .step-label { display: none; }
+  .distill-flow { gap: 0.3rem; }
+}
+
+/* ---------------------------------------------------------- (a) + (b): controls that look clickable */
+.ladder-col b {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 2.1rem; height: 1.35rem; padding: 0 0.35rem;
+  border: 1.5px solid var(--teal); border-radius: 999px; background: #fff; color: var(--petrol);
+  box-shadow: 0 2px 0 var(--tint-2); transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ladder-col:hover, .ladder-col[aria-selected="true"] { background: none; }
+.ladder-col[aria-selected="true"] { background: linear-gradient(to bottom, transparent 1.8rem, var(--highlight) 1.8rem); }
+.ladder-col[aria-selected="true"] b { background: var(--deep); border-color: var(--deep); color: #fff; box-shadow: 0 0 0 3px var(--highlight); }
+.phase-btn { border-color: var(--teal); box-shadow: 0 2px 0 var(--tint-2); transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease; }
+.phase-btn[aria-selected="true"] { border-color: var(--deep); }
+@media (hover: hover) {
+  .ladder-col:hover:not([aria-selected="true"]) { background: linear-gradient(to bottom, transparent 1.8rem, var(--tint-2) 1.8rem); }
+  .ladder-col:hover b, .phase-btn:hover { border-color: var(--petrol); transform: translateY(-1px); }
+  .ladder-col:hover:not([aria-selected="true"]) b, .phase-btn:hover:not([aria-selected="true"]) { box-shadow: 0 3px 0 var(--tint-2); }
+}
+.ladder-col:active b, .phase-btn:active { transform: translateY(1px); }
+
+/* detail box: notch towards the selected control, hint with counter */
+.phase-detail { position: relative; }
+.phase-detail::before {
+  content: ""; position: absolute; top: -8px; left: calc(var(--notch-x, 50%) - 7px); width: 14px; height: 14px;
+  background: #fff; border-left: 1.5px solid var(--line); border-top: 1.5px solid var(--line);
+  transform: rotate(45deg); transition: left 0.2s ease;
+}
+/* hint floats top right; a long title wraps beside it and then uses the full width below it */
+.panel-lite .detail-head .tab-hint { float: right; margin-left: 1rem; line-height: 1.38rem; }   /* = one title line */
+.detail-head::after { content: ""; display: block; clear: both; }
+.panel-lite .detail-head p { margin: 0; }
+.tab-hint { font-size: 0.74rem; color: var(--petrol); opacity: 0.8; white-space: nowrap; }
+.tab-hint svg, .tab-hint i { margin-right: 0.2rem; }
+.tab-keys { display: none; }
+.panel-lite:has([role="tab"]:focus-visible) .tab-keys { display: inline; }   /* keyboard users only */
+
+/* auto-advance: a bar under the active button fills up until the next step */
+.ladder-col, .phase-btn { cursor: pointer; }
+.is-ticking { position: relative; }
+.is-ticking::after {
+  content: ""; position: absolute; left: 12%; right: 12%; bottom: -6px; height: 3px; border-radius: 2px;
+  background: var(--petrol); transform-origin: left; animation: tick var(--tick, 4s) linear forwards;
+}
+@keyframes tick { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.panel-lite .detail-head .autoplay-toggle { float: right; margin-left: 0.7rem; }
+.autoplay-toggle {
+  font: inherit; font-size: 0.74rem; font-weight: 700; color: var(--petrol); background: #fff; cursor: pointer;
+  border: 1px solid var(--teal); border-radius: 999px; padding: 0.05rem 0.55rem; line-height: 1.25rem;
+}
+.autoplay-toggle:hover { background: var(--tint-2); }
+.autoplay-toggle:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+.autoplay-toggle i, .autoplay-toggle svg { font-size: 0.65rem; margin-right: 0.15rem; }
+@media (prefers-reduced-motion: reduce) {
+  .phase-detail::before { transition: none; }
+}
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.ladder-cols { min-width: 0; }
+.ladder-col { min-width: 0; }
+@media (max-width: 480px) {
+  .ladder-col b { min-width: 0; width: calc(100% - 2px); padding: 0; font-size: 0.72rem; height: 1.25rem; }
+  .ladder-col { margin: 0; }
+}
+
+.legend-human[hidden] { display: none; }
+
+/* ---------------------------------------------------------- axis titles and labelled company bars */
+.chart .axis-title { font-size: 12px; fill: var(--muted); font-weight: 600; }
+.company-caption { font-size: 0.82rem; font-weight: 700; color: var(--petrol); margin-bottom: 0.5rem; }
+.company-bar b { width: 2.6rem; text-align: right; font-size: 0.75rem; color: var(--ink); font-weight: 700; }
+
+/* ---------------------------------------------------------- navigation bar */
+.site-nav { background: rgba(255, 255, 255, 0.96); border-bottom: 1px solid var(--line); }
+.site-nav .navbar-item { font-family: 'Google Sans', sans-serif; color: var(--ink); font-size: 0.92rem; }
+.site-nav .navbar-item:hover, .site-nav .navbar-item:focus { background: var(--tint); color: var(--petrol); }
+.site-nav .navbar-item.is-current { color: var(--petrol); font-weight: 700; box-shadow: inset 0 -3px 0 var(--teal); }
+.site-nav .nav-brand { font-weight: 700; color: var(--deep); }
+.site-nav .nav-brand span { font-weight: 500; color: var(--petrol); margin-left: 0.25rem; }
+.site-nav .navbar-burger { color: var(--deep); }
+.site-nav .navbar-menu.is-active { box-shadow: 0 8px 16px rgba(15, 52, 51, 0.12); }
+section[id] { scroll-margin-top: 4rem; }
+.key-footnote { font-size: 0.78rem; color: var(--muted); text-align: center; margin-top: -0.4rem; }
+.source-note { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; }
+
+/* ---------------------------------------------------------- abstract, chart notes, glossary */
+.abstract p { font-size: 1.125rem; line-height: 1.6; }
+.chart-note { font-size: 0.95rem; color: var(--muted); margin-top: 0.8rem; }
+.glossary { display: grid; grid-template-columns: minmax(10rem, 14rem) 1fr; gap: 0.55rem 1.4rem; margin: 0; }
+.glossary dt { font-weight: 700; color: var(--deep); }
+.glossary dd { margin: 0; }
+@media screen and (max-width: 768px) {
+  .glossary { grid-template-columns: 1fr; gap: 0.15rem; }
+  .glossary dd { margin-bottom: 0.7rem; }
+}
+
+/* ---------------------------------------------------------- v2: plain lead, layers on demand, term hints */
+.plain-lead { font-size: 1.15rem; max-width: 40rem; margin: 0.4rem auto 1rem; color: var(--ink); }
+details.more { margin-top: 1rem; }
+details.more > summary, .more-toggle {
+  cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; list-style: none;
+  font-weight: 700; color: var(--petrol); border: 1.5px solid var(--teal); border-radius: 999px;
+  padding: 0.3rem 0.9rem; background: #fff;
+}
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::before, .more-toggle::before { content: "+"; font-weight: 800; width: 0.8rem; text-align: center; }
+details.more[open] > summary::before, .more-toggle[aria-expanded="true"]::before { content: "−"; }
+details.more > summary:focus-visible, .more-toggle:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+details.more[open] > summary { margin-bottom: 1rem; }
+abbr[title] { white-space: nowrap; text-decoration: underline dotted; text-underline-offset: 0.2em; cursor: help; }
+.short-label { font-size: 11px; fill: var(--muted); }
+.more-toggle { font: inherit; font-weight: 700; margin-top: 0.4rem; }
+.column[hidden] { display: none !important; }
+.publication-subtitle { text-wrap: balance; }
+
+/* ---------------------------------------------------------- agent run (data/run.json) */
+.run-intro { color: var(--muted); margin-bottom: 1.2rem; }
+.run-stats { display: grid; grid-template-columns: repeat(5, 1fr) 2fr; gap: 0.6rem; }
+.run-stat { background: var(--tint); border: 1px solid var(--line); border-radius: 12px; padding: 0.7rem 0.8rem; }
+.run-stat b { display: block; font-family: 'Google Sans', sans-serif; font-size: 1.25rem; color: var(--deep); line-height: 1.2; }
+.run-stat span { display: block; font-size: 0.74rem; color: var(--muted); line-height: 1.3; margin-top: 0.2rem; }
+.run-stat.is-result { background: var(--deep); border-color: var(--deep); }
+.run-stat.is-result b { color: #fff; }
+.run-stat.is-result span { color: var(--highlight); }
+.run-model { font-size: 0.78rem; color: var(--muted); margin: 0.45rem 0 1.2rem; }
+.run-label-row { font-size: 0.74rem; font-weight: 700; color: var(--petrol); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.35rem; }
+.run-phasebar { display: flex; gap: 3px; margin-bottom: 1.2rem; }
+.run-seg {
+  flex-basis: 0; min-width: 1.6rem; height: 2.1rem; border: none; border-radius: 6px; cursor: pointer;
+  font: inherit; font-weight: 800; font-size: 0.85rem; color: #fff; background: var(--teal);
+}
+.run-seg:hover { filter: brightness(1.12); }
+.run-seg:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+.run-seg.phase-0, .run-seg.phase-1, .run-seg.phase-2 { background: #6fc3cc; color: var(--deep); }
+.run-seg.phase-3, .run-seg.phase-4 { background: var(--teal); }
+.run-seg.phase-5 { background: var(--petrol); }
+.run-seg.phase-6, .run-seg.phase-7 { background: #0d4a4c; }
+.run-seg.phase-8, .run-seg.phase-9 { background: var(--deep); }
+.run-tabs .button { font-weight: 700; color: var(--petrol); border-color: var(--teal); }
+.run-tabs .button.is-selected { background: var(--petrol); color: #fff; border-color: var(--petrol); }
+.run-tabs .button:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+
+.run-phase { border: 1.5px solid var(--teal); border-radius: 14px; margin-bottom: 0.7rem; background: #fff; scroll-margin-top: 4.5rem; }
+.run-phase > summary {
+  cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.7rem;
+  padding: 0.7rem 1rem; background: var(--tint); border-radius: 13px;
+}
+.run-phase[open] > summary { border-radius: 13px 13px 0 0; border-bottom: 1px solid var(--line); }
+.run-phase > summary::-webkit-details-marker, .run-step > summary::-webkit-details-marker { display: none; }
+.run-phase > summary::before, .run-step > summary::before { content: "+"; font-weight: 800; color: var(--petrol); width: 0.8rem; }
+.run-phase[open] > summary::before, .run-step[open] > summary::before { content: "−"; }
+.run-phase > summary b { color: var(--petrol); }
+.run-phase-name { font-weight: 700; color: var(--ink); }
+.run-phase-meta { margin-left: auto; font-size: 0.8rem; color: var(--muted); }
+.run-steplist { list-style: none; margin: 0; padding: 0.4rem 0.6rem 0.6rem; }
+.run-step { border-bottom: 1px solid var(--line); }
+.run-steplist li:last-child .run-step { border-bottom: none; }
+.run-step > summary {
+  cursor: pointer; list-style: none; display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.45rem 0.4rem; border-radius: 8px; min-width: 0;
+}
+.run-step > summary:hover { background: var(--tint); }
+.run-phase > summary:focus-visible, .run-step > summary:focus-visible { outline: 3px solid var(--highlight); outline-offset: 1px; }
+.run-time { font-variant-numeric: tabular-nums; font-size: 0.78rem; color: var(--muted); flex: none; }
+.run-tool {
+  flex: none; font-size: 0.7rem; font-weight: 700; border-radius: 999px; padding: 0.05rem 0.55rem;
+  background: var(--tint-2); color: var(--petrol); white-space: nowrap;
+}
+.run-tool.tool-run_bash, .run-tool.tool-run_python { background: var(--deep); color: var(--highlight); }
+.run-tool.tool-view_image { background: var(--highlight); color: var(--deep); }
+.run-tool.tool-submit_estimate { background: var(--petrol); color: #fff; }
+.run-sum {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: none; color: var(--ink); font-size: 0.8rem; padding: 0;
+}
+.run-flag { flex: none; font-size: 0.68rem; font-weight: 700; color: #a3262a; border: 1px solid #a3262a; border-radius: 999px; padding: 0 0.45rem; }
+.run-thumb { flex: none; width: 2.6rem; height: 2rem; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 4px; }
+.run-body { padding: 0.3rem 0.4rem 0.9rem 1.4rem; min-width: 0; }
+.run-label { font-size: 0.72rem; font-weight: 700; color: var(--petrol); text-transform: uppercase; letter-spacing: 0.05em; margin: 0.7rem 0 0.3rem; }
+.run-thought { background: var(--tint); border-left: 3px solid var(--teal); border-radius: 0 8px 8px 0; padding: 0.4rem 0.8rem; margin: 0.3rem 0 0.5rem; }
+.run-thought > summary { cursor: pointer; font-size: 0.78rem; font-weight: 700; color: var(--petrol); }
+.run-thought .md { font-size: 0.86rem; margin-top: 0.4rem; }
+.run-out, .run-body .hl pre, .run-fileview .hl pre {
+  font-size: 0.78rem; line-height: 1.45; padding: 0.7rem 0.85rem; border-radius: 8px; margin: 0;
+  max-height: 30rem; overflow: auto; white-space: pre;
+}
+.run-out { background: #f3f6f6; color: var(--ink); border: 1px solid var(--line); }
+.run-body .hl pre, .run-fileview .hl pre { background: #f8fafa; border: 1px solid var(--line); }
+.run-more { margin-top: 0.3rem; }
+.run-more > summary { cursor: pointer; font-size: 0.78rem; font-weight: 700; color: var(--petrol); }
+.run-empty { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+.run-img img { display: block; max-width: 100%; max-height: 32rem; width: auto; height: auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.run-price { width: auto; margin-bottom: 0.6rem !important; }
+.run-closing { border-top: 1px solid var(--line); padding: 0.5rem 1.2rem 0.9rem; }
+.md { font-size: 0.88rem; line-height: 1.55; overflow-wrap: anywhere; }
+.md h1, .md h2, .md h3 { font-weight: 700; color: var(--deep); margin: 0.9rem 0 0.4rem; line-height: 1.3; }
+.md h1 { font-size: 1.15rem; } .md h2 { font-size: 1.02rem; } .md h3 { font-size: 0.94rem; }
+.md p, .md ul, .md ol, .md table { margin: 0 0 0.6rem; }
+.md ul, .md ol { padding-left: 1.3rem; }
+.md ul { list-style: disc; } .md ol { list-style: decimal; }
+.md table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 0.82rem; }
+.md th, .md td { border: 1px solid var(--line); padding: 0.25rem 0.5rem; text-align: left; }
+.md th { background: var(--tint); }
+.md code { font-size: 0.82em; background: var(--tint); color: var(--deep); padding: 0.05rem 0.3rem; border-radius: 4px; }
+.md pre { background: #f8fafa; border: 1px solid var(--line); border-radius: 8px; font-size: 0.78rem; overflow: auto; }
+.md pre code { background: none; padding: 0; }
+
+#run-files:not([hidden]) { display: grid; grid-template-columns: minmax(11rem, 15rem) 1fr; gap: 1rem; align-items: stretch; }
+.run-filelist { display: flex; flex-direction: column; gap: 0.3rem; max-height: calc(100vh - 6rem); overflow-y: auto; }
+.run-filebtn {
+  font: inherit; text-align: left; cursor: pointer; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; padding: 0.35rem 0.6rem; display: flex; justify-content: space-between; gap: 0.5rem;
+}
+.run-filebtn span { font-family: monospace; font-size: 0.8rem; color: var(--ink); overflow: hidden; text-overflow: ellipsis; }
+.run-filebtn small { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+.run-filebtn:hover { background: var(--tint); }
+.run-filebtn.is-active { background: var(--petrol); border-color: var(--petrol); }
+.run-filebtn.is-active span, .run-filebtn.is-active small { color: #fff; }
+.run-filebtn:focus-visible { outline: 3px solid var(--highlight); outline-offset: 1px; }
+/* contain: size keeps the viewer out of the row height, so the row follows the list and the viewer stretches to it */
+.run-fileview {
+  min-width: 0; contain: size; display: flex; flex-direction: column;
+  border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff;
+}
+.run-filehead {
+  flex: none; display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.85rem;
+  border-bottom: 1px solid var(--line); background: var(--tint);
+}
+.run-filehead code { font-family: monospace; font-size: 0.82rem; color: var(--deep); background: none; padding: 0; }
+.run-filehead small { margin-left: auto; font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+.run-filebody { flex: 1 1 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.run-filebody:focus-visible { outline: 3px solid var(--highlight); outline-offset: -3px; }
+.run-filebody.is-code { background: #f8fafa; }
+.run-filebody > div > .md, .run-filebody > .md { padding: 0.7rem 1rem; }
+.run-fileview .hl pre {
+  max-height: none; overflow: visible; border: 0; border-radius: 0; background: none;
+  width: max-content; min-width: 100%; margin: 0;
+}
+.run-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.8rem; }
+.run-shot { display: flex; flex-direction: column; gap: 0.35rem; border: 1px solid var(--line); border-radius: 10px; padding: 0.5rem; background: #fff; }
+.run-shot:hover { border-color: var(--teal); }
+.run-shot img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+.run-shot span { font-size: 0.72rem; color: var(--muted); overflow-wrap: anywhere; }
+
+@media screen and (max-width: 768px) {
+  .run-stats { grid-template-columns: repeat(2, 1fr); }
+  .run-stat.is-result { grid-column: 1 / -1; }
+  .run-seg { min-width: 1.3rem; font-size: 0.75rem; }
+  #run-files:not([hidden]) { grid-template-columns: 1fr; }
+  .run-filelist { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; max-height: none; padding-bottom: 0.3rem; }
+  .run-filebtn { flex: none; }
+  .run-fileview { contain: none; height: min(70vh, 32rem); }
+  .run-time { display: none; }
+  .run-body { padding-left: 0.4rem; }
+}
+.run-phase-desc { font-size: 0.84rem; color: var(--muted); margin: 0.6rem 1rem 0.1rem; }
+
+/* ---------------------------------------------------------- spacing scale
+   One scale for every gap on the page. Inside a section, consecutive blocks are spaced by the rules below
+   instead of their own margins: heading -> intro 16, block -> block 24, figure -> note 12. */
+:root {
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.5rem; --space-6: 2rem; --space-7: 3rem;
+  --section-y: var(--space-7); --card-pad: var(--space-5); --radius-sm: 8px; --measure: 40rem;
+}
+@media (max-width: 768px) { :root { --section-y: var(--space-6); --card-pad: var(--space-4); } }
+
+.section, .footer { padding: var(--section-y) var(--space-5); }
+:is(.section > .container, .teaser .hero-body) > * { margin-top: 0; margin-bottom: 0; }
+:is(.section > .container, .teaser .hero-body) > * + * { margin-top: var(--space-5); }
+:is(.section > .container, .teaser .hero-body) > .kicker + * { margin-top: var(--space-1); }
+:is(.section > .container, .teaser .hero-body) > :is(.title, .heading-row) + p { margin-top: var(--space-4); }
+:is(.section > .container, .teaser .hero-body) > * + :is(.chart-note, .source-note, .key-footnote, .run-model) { margin-top: var(--space-3); }
+:is(.section > .container, .teaser .hero-body) > .run-label-row + * { margin-top: var(--space-2); }
+:is(.section > .container, .teaser .hero-body) > :is(.run-tabs, .results-carousel) + * { margin-top: var(--space-4); }
+/* Bulma .columns: keep the -.75rem outer margins (they cancel the column padding), shift only the top one */
+:is(.section > .container, .teaser .hero-body) > .columns { margin-top: -0.75rem; margin-bottom: -0.75rem; }
+:is(.section > .container, .teaser .hero-body) > * + .columns { margin-top: calc(var(--space-5) - 0.75rem); }
+.content > details.more { margin-top: var(--space-5); }
+.more-toggle { margin-top: 0; }
+
+.button { font-family: inherit; }
+.metric-toggle .button, .run-tabs .button { margin-bottom: 0; height: 2.25rem; }
+
+.card-lite, .panel-lite, .chart-card, .part-detail, .funding, .teaser-figure { padding: var(--card-pad); border-radius: var(--radius); }
+.company-card, .input-group, .run-stat, .phase-detail, .teaser-card { padding: var(--space-3) var(--space-4); }
+.key-number { padding: var(--space-5) var(--space-4); }
+.input-tile, .ref-card, .run-shot { padding: var(--space-2); border-radius: var(--radius-sm); }
+.media-slot { padding: 0; border-radius: var(--radius-sm); }
+.teaser-flow { margin-top: 0; }
+.ref-row { margin-bottom: 0; }
+.company-card { margin-bottom: var(--space-3); }
+.run-phase { margin-bottom: var(--space-3); border-radius: var(--radius); }
+.run-phase > summary { border-radius: calc(var(--radius) - 1.5px); }
+.run-phase[open] > summary { border-radius: calc(var(--radius) - 1.5px) calc(var(--radius) - 1.5px) 0 0; }
+.input-pair, .ref-row, .run-stats, .run-gallery, .teaser-flow, .teaser-inputs { gap: var(--space-3); }
+.ref-strip, .tldr { gap: var(--space-2); }
+.cap-chips, .memory-row, .agent-models { gap: var(--space-1); }
+/* one reading width for all running text, on the same left edge as headings and cards (about 70 to 90 characters per line) */
+.abstract p, #grenzen .content, .run-intro, .chart-note, .source-note,
+#entdecken > .container > p, .section > .container > details.more > p { max-width: var(--measure); }
+/* on phones, break only long compound words (Safari ignores the limit) */
+@media (max-width: 768px) {
+  .section :is(p, li, dd) { hyphens: auto; hyphenate-limit-chars: 12 5 5; }
+}
+.footer > .container { max-width: 960px !important; }
+.footer .columns.is-centered > .column.is-8 { flex: none; width: 100%; }
+
+/* ---------------------------------------------------------- review fixes */
+.chart-card { border-color: var(--teal); }
+@media (min-width: 769px) { .chart-card.is-centered-chart {
+    margin-top: calc(1.25rem + var(--space-2)); height: calc(100% - 1.25rem - var(--space-2));
+  } }
+@media (max-width: 768px) {
+  .section .title.is-3 { font-size: 1.5rem; }
+  .publication-subtitle { font-size: 1.4rem !important; }
+  .chart { overflow-x: auto; }
+  #ladder-chart svg { min-width: 640px; }
+  #cdf-chart svg { min-width: 520px; }
+}
+@media (max-width: 480px) {
+  .chip { font-size: 0.85rem; padding: 0.35rem 0.7rem; }
+  .run-phase-meta { flex-basis: 100%; margin-left: 1.4rem; }
+}
+
+/* ---------------------------------------------------------- agent run: swapped phases and result chart */
+.run-phasebar { margin-bottom: var(--space-6); }
+.run-swap { display: flex; gap: 3px; flex-basis: 0; position: relative; }
+.run-swap > .run-seg { min-width: 0; }
+.run-swap::before {
+  content: ""; position: absolute; left: 2px; right: 2px; top: calc(100% + 3px); height: 6px;
+  border: 1.5px solid var(--petrol); border-top: none; border-radius: 0 0 4px 4px;
+}
+.run-swap-note {
+  position: absolute; top: calc(100% + 9px); left: 50%; transform: translateX(-50%);
+  font-size: 0.7rem; font-weight: 700; color: var(--petrol); white-space: nowrap;
+}
+.run-seg.is-swapped { box-shadow: inset 0 0 0 2px var(--highlight); }
+.run-phase-swap {
+  font-size: 0.68rem; font-weight: 700; color: var(--petrol); border: 1px solid var(--petrol);
+  border-radius: 999px; padding: 0 0.45rem; white-space: nowrap;
+}
+/* the swapped phase groups: indented as a pair; swapArrow() in index.js draws the bracket in the gutter */
+.run-swap-pair { position: relative; padding-left: var(--space-6); margin-bottom: var(--space-3); }
+.run-swap-pair > .run-phase:last-of-type { margin-bottom: 0; }
+.run-swap-arrow { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.run-swap-line { fill: none; stroke: var(--petrol); stroke-width: 2; }
+.run-swap-head { fill: var(--petrol); }
+@media (max-width: 480px) {
+  .run-swap-pair { padding-left: var(--space-5); }
+  .run-phase-swap { margin-left: 1.4rem; }
+}
+a.run-stat.is-result { display: block; text-decoration: none; }
+a.run-stat.is-result:hover { background: var(--petrol); border-color: var(--petrol); }
+a.run-stat.is-result:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+
+.run-result {
+  margin: var(--space-5) 0 0; padding: var(--card-pad); background: #fff; border: 2px solid var(--petrol);
+  border-radius: var(--radius); scroll-margin-top: 4.5rem;
+}
+.run-result > * { margin: 0; }
+.run-result > * + * { margin-top: var(--space-3); }
+.run-result > .kicker + .title { margin-top: var(--space-1); }
+.rr-img { display: block; width: 100%; max-width: 30rem; height: auto; }
+
+/* letters of the VALUED acronym in the page title */
+.publication-subtitle .acro { color: var(--petrol); font-weight: 800; }
