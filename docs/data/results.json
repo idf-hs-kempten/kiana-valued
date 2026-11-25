@@ -4,11 +4,11 @@
  "key_numbers": [
   {
    "value": "67 % → 23 %",
-   "label": "typische Abweichung vom Preis der Firma, ohne Kontext → mit Referenzteilen"
+   "label": "typische Abweichung vom Preis der<br>Firma, ohne Kontext → mit Referenzteilen"
   },
   {
    "value": "54 %",
-   "label": "der Stückpreise schätzt der Few-Shot-Agent mit höchstens 25 % Abweichung"
+   "label": "der Stückpreise schätzt der Few-Shot-<br>Agent mit höchstens 25 % Abweichung"
   },
   {
    "value": "300",
